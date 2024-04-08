@@ -7,12 +7,27 @@ public class Cube {
     {
         glBegin(GL_QUADS);
             // top 
-            
+            glVertex3f(1.0f, 1.0f, -1.0f);
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, -1.0f);
             // back
+            glVertex3f(1.0f, -1.0f, -1.0f);
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, -1.0f);
             
             // left
+            glVertex3f(-1.0f, 1.0f, 1.0f);
+            glVertex3f(-1.0f, 1.0f, -1.0f);
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(-1.0f, -1.0f, 1.0f);
             
             // right
+            glVertex3f(1.0f, 1.0f, -1.0f);
+            glVertex3f(1.0f, 1.0f, 1.0f);
+            glVertex3f(1.0f, -1.0f, 1.0f);
+            glVertex3f(1.0f, -1.0f, -1.0f);
         
             // front
             glColor3f(1.0f, 0.0f, 0.0f); // red
@@ -21,7 +36,11 @@ public class Cube {
             glVertex3f(-1.0f, -1.0f, 1.0f);
             glVertex3f(1.0f, -1.0f, 1.0f);
             
-            // back
+            //bottom
+            glVertex3f(1.0f, -1.0f, 1.0f);
+            glVertex3f(-1.0f, -1.0f, 1.0f);
+            glVertex3f(-1.0f, -1.0f, -1.0f);
+            glVertex3f(1.0f, -1.0f, -1.0f);
             
         glEnd();
     }  
