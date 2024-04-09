@@ -51,12 +51,12 @@ public class CameraController {
     
     public void move_up(float distance)
     {
-        
+        position.y -= distance;
     }
     
     public void move_down(float distance)
     {
-        
+        position.y += distance;
     }
     
     public void lookThrough()

@@ -56,11 +56,11 @@ public class Minecraft {
             }
             if (Keyboard.isKeyDown(Keyboard.KEY_SPACE)) // up
             {
-                
+                camera.move_up(velocity * dt);
             }
             if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) // down
             {
-                
+                camera.move_down(velocity * dt);
             }
             
             glLoadIdentity();
@@ -103,13 +103,14 @@ public class Minecraft {
             
             Display.setTitle("Minecraft");
             Display.create();
-            
+            glEnable(GL_DEPTH_TEST);
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
             GLU.gluPerspective(100.0f, (float) Display.getWidth()/ (float) Display.getHeight(), 0.1f, 300.0f);
             glMatrixMode(GL_MODELVIEW);
             glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+            
         } 
         catch (Exception e)
         {
