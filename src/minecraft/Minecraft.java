@@ -17,8 +17,8 @@ public class Minecraft {
         Minecraft app = new Minecraft();
         app.init();
         
-        CameraController camera = new CameraController(0.0f, 0.0f, -2.0f);
-        Cube cube1 = new Cube();
+        CameraController camera = new CameraController(0.0f, 0.0f, -75.0f);
+        Chunk chunk_one = new Chunk(0.0f, 0.0f, 0.0f);
         
         float dt = 0;
         long previous_time = 0;
@@ -28,7 +28,6 @@ public class Minecraft {
         float mouse_sensitivity = 0.1f;
         
         Mouse.setGrabbed(true);
-        
         while (!Display.isCloseRequested() && !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE))
         {
             current_time = Sys.getTime(); 
@@ -66,9 +65,8 @@ public class Minecraft {
             glLoadIdentity();
             camera.lookThrough();
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            
-            cube1.render();
-            
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            chunk_one.render();
             
             Display.update();
             Display.sync(60);
@@ -103,14 +101,16 @@ public class Minecraft {
             
             Display.setTitle("Minecraft");
             Display.create();
-            glEnable(GL_DEPTH_TEST);
+            
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
-            GLU.gluPerspective(100.0f, (float) Display.getWidth()/ (float) Display.getHeight(), 0.1f, 300.0f);
+            GLU.gluPerspective(45.0f, (float) Display.getWidth()/ (float) Display.getHeight(), 0.1f, 300.0f);
             glMatrixMode(GL_MODELVIEW);
             glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
-            
+            glEnable(GL_DEPTH_TEST);
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glEnableClientState(GL_COLOR_ARRAY);
         } 
         catch (Exception e)
         {

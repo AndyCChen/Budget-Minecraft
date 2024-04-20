@@ -2,7 +2,11 @@ package minecraft;
 
 import static org.lwjgl.opengl.GL11.*;
 
-public class Cube {
+public class Block {
+    public enum BlockType {
+        
+    }
+    
     public void render()
     {
         glBegin(GL_QUADS);
