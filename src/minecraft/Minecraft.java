@@ -111,6 +111,9 @@ public class Minecraft {
             glEnable(GL_DEPTH_TEST);
             glEnableClientState(GL_VERTEX_ARRAY);
             glEnableClientState(GL_COLOR_ARRAY);
+            glEnable(GL_TEXTURE_2D); //Texture
+            glEnableClientState (GL_TEXTURE_COORD_ARRAY);
+
         } 
         catch (Exception e)
         {
