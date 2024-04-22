@@ -82,10 +82,30 @@ public class Chunk {
     
     public void rebuildMesh(float start_x, float start_y, float start_z)
     {
-       
+        SimplexNoise noise = new SimplexNoise(128, 0.5, new Random().nextInt());
+        
+        vertex_VBO = glGenBuffers();
+        color_VBO = glGenBuffers();
+        
         FloatBuffer vertexPositionBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 12); // 12 floats for each face of a block or 3 floats per vertex
         FloatBuffer colorBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 12);
         FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) * 6 * 12);
+        
+        // Set noise scale and height factor
+    double scale = 0.1;
+    double heightFactor = CHUNK_SIZE / 2;  // Controls the variation in height
+
+    // Calculate maximum height for each column based on noise
+    int[][] maxHeight = new int[CHUNK_SIZE][CHUNK_SIZE];
+    for (int x = 0; x < CHUNK_SIZE; ++x) {
+        for (int z = 0; z < CHUNK_SIZE; ++z) {
+            // Using getNoise to generate height
+            double noiseValue = noise.getNoise(x, z);
+            int calculatedHeight = (int)(noiseValue * heightFactor + CHUNK_SIZE / 4);
+            maxHeight[x][z] = Math.max(0, Math.min(calculatedHeight, CHUNK_SIZE - 1));  // Ensure height is within bounds
+        }
+    }
+        
         
         for (int x = 0; x < CHUNK_SIZE; ++x)
         {
@@ -93,9 +113,12 @@ public class Chunk {
             {
                 for (int z = 0; z < CHUNK_SIZE; ++z)
                 {
-                    vertexPositionBuffer.put( createCube( start_x + x * BLOCK_LENGTH, start_y + y * BLOCK_LENGTH, start_z + z * BLOCK_LENGTH ) );
-                    VertexTextureData.put(createTexCube((float) 0, (float) 0,chunk_block[x][y][z]));
-                    colorBuffer.put(createCubeVertexCol(getCubeColor(chunk_block[(int) x][(int) y][(int) z])));
+                    if(y < maxHeight[x][z]){
+                        vertexPositionBuffer.put( createCube( start_x + x * BLOCK_LENGTH, start_y + y * BLOCK_LENGTH, start_z + z * BLOCK_LENGTH ) );
+                        vertexPositionBuffer.put( createCube( start_x + x * BLOCK_LENGTH, start_y + y * BLOCK_LENGTH, start_z + z * BLOCK_LENGTH ) );
+                        VertexTextureData.put(createTexCube((float) 0, (float) 0,chunk_block[x][y][z]));
+                        colorBuffer.put(createCubeVertexCol(getCubeColor(chunk_block[(int) x][(int) y][(int) z])));
+                    }
                 }
             }
         }
