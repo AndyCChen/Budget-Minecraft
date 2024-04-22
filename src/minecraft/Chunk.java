@@ -77,7 +77,7 @@ public class Chunk {
         for (int z = 0; z < CHUNK_SIZE; ++z) {
             // Using getNoise to generate height
             double noiseValue = noise.getNoise(x, z);
-            int calculatedHeight = (int)(noiseValue * heightFactor + CHUNK_SIZE / 2);
+            int calculatedHeight = (int)(noiseValue * heightFactor + CHUNK_SIZE / 4);
             maxHeight[x][z] = Math.max(0, Math.min(calculatedHeight, CHUNK_SIZE - 1));  // Ensure height is within bounds
         }
     }
