@@ -17,14 +17,17 @@ public class Minecraft {
         Minecraft app = new Minecraft();
         app.init();
         
-        CameraController camera = new CameraController(0.0f, 0.0f, -75.0f);
-        Chunk chunk_one = new Chunk(0.0f, 0.0f, 0.0f);
+        CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -15.0f, 0.0f);
+        Chunk chunk_1 = new Chunk(0, 0, -1);
+        Chunk chunk_2 = new Chunk(-1, 0, -1);
+        Chunk chunk_3 = new Chunk(0, 0, 0);
+        Chunk chunk_4 = new Chunk(-1, 0, 0);
         
         float dt = 0;
         long previous_time = 0;
         long current_time = 0;
         
-        float velocity = 5.0f;
+        float velocity = 15.0f;
         float mouse_sensitivity = 0.1f;
         
         Mouse.setGrabbed(true);
@@ -66,7 +69,10 @@ public class Minecraft {
             camera.lookThrough();
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            chunk_one.render();
+            chunk_1.render();
+            chunk_2.render();
+            chunk_3.render();
+            chunk_4.render();
             
             Display.update();
             Display.sync(60);

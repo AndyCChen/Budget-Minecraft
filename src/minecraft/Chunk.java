@@ -9,26 +9,26 @@ import org.newdawn.slick.opengl.Texture;
 import org.newdawn.slick.opengl.TextureLoader;
 import org.newdawn.slick.util.ResourceLoader;
 
-
 /**
  *
  * @author Andy
  */
 public class Chunk {
+    final private static SimplexNoise noise = new SimplexNoise(128, 0.5, new Random().nextInt());
     public static final int CHUNK_SIZE = 30;
     public static final int BLOCK_LENGTH = 2;
     
     private Block[][][] chunk_block;
     private int vertex_VBO;
     private int color_VBO;
-    private float start_x, start_y, start_z;
+    private int start_x, start_y, start_z;
     
     private Random r;
     
     private int VBOTextureHandle;
     private Texture texture;
     
-    public Chunk(float start_x, float start_y, float start_z)
+    public Chunk(int start_x, int start_y, int start_z)
     {
         try
         {
@@ -69,7 +69,7 @@ public class Chunk {
     {
         glPushMatrix();
             glBindBuffer(GL_ARRAY_BUFFER, VBOTextureHandle);
-            glBindTexture(GL_TEXTURE_2D, 1);
+            glBindTexture(GL_TEXTURE_2D, texture.getTextureID());
             glTexCoordPointer(2,GL_FLOAT,0,0L);
             glBindBuffer(GL_ARRAY_BUFFER, vertex_VBO);
             glVertexPointer(3, GL_FLOAT, 0, 0L);
@@ -79,13 +79,11 @@ public class Chunk {
         glPopMatrix();
     }
     
-    public void rebuildMesh(float start_x, float start_y, float start_z)
+    public void rebuildMesh(int start_x, int start_y, int start_z)
     {
         this.start_x = start_x;
         this.start_y = start_y;
         this.start_z = start_z;
-        
-        SimplexNoise noise = new SimplexNoise(128, 0.5, new Random().nextInt());
         
         vertex_VBO = glGenBuffers();
         color_VBO = glGenBuffers();
@@ -95,7 +93,6 @@ public class Chunk {
         FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) * 6 * 12);
         
         // Set noise scale and height factor
-        double scale = 0.1;
         double heightFactor = CHUNK_SIZE / 2;  // Controls the variation in height
 
         // Calculate maximum height for each column based on noise
@@ -103,12 +100,11 @@ public class Chunk {
         for (int x = 0; x < CHUNK_SIZE; ++x) {
             for (int z = 0; z < CHUNK_SIZE; ++z) {
                 // Using getNoise to generate height
-                double noiseValue = noise.getNoise(x, z);
+                double noiseValue = noise.getNoise( start_x * CHUNK_SIZE + x,start_z * CHUNK_SIZE + z );
                 int calculatedHeight = (int)(noiseValue * heightFactor + CHUNK_SIZE / 4);
                 maxHeight[x][z] = Math.max(1, Math.min(calculatedHeight, CHUNK_SIZE - 1));  // Ensure height is within bounds
             }
         }
-        
         
         for (int x = 0; x < CHUNK_SIZE; ++x)
         {
@@ -117,7 +113,7 @@ public class Chunk {
                 for (int z = 0; z < CHUNK_SIZE; ++z)
                 {
                     if(y < maxHeight[x][z]){
-                        vertexPositionBuffer.put( createCube( start_x + x * BLOCK_LENGTH, start_y + y * BLOCK_LENGTH, start_z + z * BLOCK_LENGTH ) );
+                        vertexPositionBuffer.put( createCube( (start_x * 2 * CHUNK_SIZE) + (x * BLOCK_LENGTH), (start_y * 2 * CHUNK_SIZE) + (y * BLOCK_LENGTH), (start_z * 2 * CHUNK_SIZE) + (z * BLOCK_LENGTH) ) );
                         VertexTextureData.put(createTexCube((float) 0, (float) 0,chunk_block[x][y][z]));
                         colorBuffer.put(createCubeVertexCol(getCubeColor(chunk_block[(int) x][(int) y][(int) z])));
                     }
@@ -130,14 +126,12 @@ public class Chunk {
         VertexTextureData.flip();
         glBindBuffer(GL_ARRAY_BUFFER, vertex_VBO);
         glBufferData(GL_ARRAY_BUFFER, vertexPositionBuffer, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ARRAY_BUFFER, color_VBO);
         glBufferData(GL_ARRAY_BUFFER, colorBuffer, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind buffer
         glBindBuffer(GL_ARRAY_BUFFER, VBOTextureHandle); //texture
         glBufferData(GL_ARRAY_BUFFER, VertexTextureData,GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind buffer
     }
     
     private float[] createCubeVertexCol(float[] CubeColorArray) {
@@ -150,8 +144,7 @@ public class Chunk {
 
     private float[] getCubeColor(Block block) {
         return new float[] { 0.7f, 0.7f, 0.7f };
-}
-
+    }
     
     private float[] createCube(float x, float y, float z)
     {
