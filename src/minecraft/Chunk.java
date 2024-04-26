@@ -5,9 +5,7 @@ import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import java.util.Random;
-import org.newdawn.slick.opengl.Texture;
-import org.newdawn.slick.opengl.TextureLoader;
-import org.newdawn.slick.util.ResourceLoader;
+import minecraft.BlockTexture.BlockTextureType;
 
 /**
  *
@@ -23,24 +21,11 @@ public class Chunk {
     private int color_VBO;
     private int start_x, start_y, start_z;
     
-    private Random r;
-    
     private int VBOTextureHandle;
-    private Texture texture;
     
     public Chunk(int start_x, int start_y, int start_z)
     {
-        try
-        {
-            texture = TextureLoader.getTexture("PNG", ResourceLoader.getResourceAsStream("/res/terrain.png"));
-        }
-        catch(Exception e)
-        {
-            System.err.println("Error loading texture: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        r= new Random();
+        Random r = new Random();
         
         chunk_block = new Block[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
         
@@ -50,7 +35,7 @@ public class Chunk {
             {
                 for (int z = 0; z < CHUNK_SIZE; ++z)
                 {
-                    chunk_block[x][y][z] = new Block( generateBlockType(r.nextInt() % 6) );
+                    chunk_block[x][y][z] = new Block( generateBlockType( r.nextInt() ) );
                 }
             }
         }
@@ -69,7 +54,7 @@ public class Chunk {
     {
         glPushMatrix();
             glBindBuffer(GL_ARRAY_BUFFER, VBOTextureHandle);
-            glBindTexture(GL_TEXTURE_2D, texture.getTextureID());
+            glBindTexture(GL_TEXTURE_2D, BlockTexture.getTexture().getTextureID());
             glTexCoordPointer(2,GL_FLOAT,0,0L);
             glBindBuffer(GL_ARRAY_BUFFER, vertex_VBO);
             glVertexPointer(3, GL_FLOAT, 0, 0L);
@@ -115,7 +100,7 @@ public class Chunk {
                     if(y < maxHeight[x][z]){
                         vertexPositionBuffer.put( createCube( (start_x * 2 * CHUNK_SIZE) + (x * BLOCK_LENGTH), (start_y * 2 * CHUNK_SIZE) + (y * BLOCK_LENGTH), (start_z * 2 * CHUNK_SIZE) + (z * BLOCK_LENGTH) ) );
                         VertexTextureData.put(createTexCube((float) 0, (float) 0,chunk_block[x][y][z]));
-                        colorBuffer.put(createCubeVertexCol(getCubeColor(chunk_block[(int) x][(int) y][(int) z])));
+                        colorBuffer.put( createCubeVertexCol( getCubeColor( chunk_block[x][y][z] ) ) );
                     }
                 }
             }
@@ -124,11 +109,12 @@ public class Chunk {
         vertexPositionBuffer.flip();
         colorBuffer.flip();
         VertexTextureData.flip();
+        
         glBindBuffer(GL_ARRAY_BUFFER, vertex_VBO);
         glBufferData(GL_ARRAY_BUFFER, vertexPositionBuffer, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, color_VBO);
         glBufferData(GL_ARRAY_BUFFER, colorBuffer, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, VBOTextureHandle); //texture
+        glBindBuffer(GL_ARRAY_BUFFER, VBOTextureHandle);
         glBufferData(GL_ARRAY_BUFFER, VertexTextureData,GL_STATIC_DRAW);
         
         glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind buffer
@@ -189,220 +175,218 @@ public class Chunk {
         };
     }
     
-    private Block.BlockType generateBlockType(int r)
+    private BlockTextureType generateBlockType(int r)
     {
-        switch (r) {
-            case 0:  return Block.BlockType.BlockType_Bedrock;
-            case 1:  return Block.BlockType.BlockType_Dirt;
-            case 2:  return Block.BlockType.BlockType_Gravel;
-            case 3:  return Block.BlockType.BlockType_Sand;
-            case 4:  return Block.BlockType.BlockType_Stone;
-            default: return Block.BlockType.BlockType_Water;
-        }
+        BlockTextureType[] types = BlockTextureType.values();
+        return types[ Math.abs(r % types.length) ];
     }
     
     public static float[] createTexCube(float x, float y, Block block) {
-        float offset = (1024f/16) / 1024f;
+        float offset_x = (1024.0f / 64) / 1024f;
+        float offset_y = ( 512.0f / 32 ) / 512.0f;
         
         switch (block.getBlockType())
         {
-            case BlockType_Dirt:
+            case Grass:
                 return new float[] {
                     // TOP
-                    x + offset*2, y + offset*0,
-                    x + offset*3, y + offset*0,
-                    x + offset*3, y + offset*1,
-                    x + offset*2, y + offset*1,
+                    x + offset_x*23, y + offset_y*17,
+                    x + offset_x*24, y + offset_y*17,
+                    x + offset_x*24, y + offset_y*18,
+                    x + offset_x*23, y + offset_y*18,
                     // BOTTOM
-                    x + offset*2, y + offset*0,
-                    x + offset*3, y + offset*0,
-                    x + offset*3, y + offset*1,
-                    x + offset*2, y + offset*1,
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
                     // FRONT QUAD
-                    x + offset*2, y + offset*0,
-                    x + offset*3, y + offset*0,
-                    x + offset*3, y + offset*1,
-                    x + offset*2, y + offset*1,
+                    
+                    x + offset_x*20, y + offset_y*18,
+                    x + offset_x*21, y + offset_y*18,
+                    x + offset_x*21, y + offset_y*17,
+                    x + offset_x*20, y + offset_y*17,
+                    
                     // BACK QUAD
-                    x + offset*2, y + offset*0,
-                    x + offset*3, y + offset*0,
-                    x + offset*3, y + offset*1,
-                    x + offset*2, y + offset*1,
+                    x + offset_x*20, y + offset_y*18,
+                    x + offset_x*21, y + offset_y*18,
+                    x + offset_x*21, y + offset_y*17,
+                    x + offset_x*20, y + offset_y*17,
+                    
                     // LEFT QUAD
-                    x + offset*2, y + offset*0,
-                    x + offset*3, y + offset*0,
-                    x + offset*3, y + offset*1,
-                    x + offset*2, y + offset*1,
+                    x + offset_x*20, y + offset_y*17,
+                    x + offset_x*21, y + offset_y*17,
+                    x + offset_x*21, y + offset_y*18,
+                    x + offset_x*20, y + offset_y*18,
                     // RIGHT QUAD
-                    x + offset*2, y + offset*0,
-                    x + offset*3, y + offset*0,
-                    x + offset*3, y + offset*1,
-                    x + offset*2, y + offset*1,
+                    x + offset_x*20, y + offset_y*17,
+                    x + offset_x*21, y + offset_y*17,
+                    x + offset_x*21, y + offset_y*18,
+                    x + offset_x*20, y + offset_y*18,
                 };
-            case BlockType_Sand:
+            case Sand:
                 return new float[] {
                     // top
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 3, y + offset * 2,
-                    x + offset * 2, y + offset * 2,
+                    x + offset_x * 2, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 31,
                     // bottom
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 3, y + offset * 2,
-                    x + offset * 2, y + offset * 2,
+                    x + offset_x * 1, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 32,
                     // front
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 3, y + offset * 2,
-                    x + offset * 2, y + offset * 2,
+                    x + offset_x * 1, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 32,
                     // back
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 3, y + offset * 2,
-                    x + offset * 2, y + offset * 2,
+                    x + offset_x * 1, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 32,
                     // left
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 3, y + offset * 2,
-                    x + offset * 2, y + offset * 2,
+                    x + offset_x * 1, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 32,
                     // right
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 3, y + offset * 2,
-                    x + offset * 2, y + offset * 2,
+                    x + offset_x * 1, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 32,
                 };
-            case BlockType_Stone:
+            case Stone:
                 return new float[] {
                     // top
-                    x + offset * 0, y + offset * 1,
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 1, y + offset * 2,
-                    x + offset * 0, y + offset * 2,
+                    x + offset_x * 34, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 1,
+                    x + offset_x * 34, y + offset_y * 1,
                     // bottom
-                    x + offset * 0, y + offset * 1,
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 1, y + offset * 2,
-                    x + offset * 0, y + offset * 2,
+                    x + offset_x * 34, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 1,
+                    x + offset_x * 34, y + offset_y * 1,
                     // front
-                    x + offset * 0, y + offset * 1,
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 1, y + offset * 2,
-                    x + offset * 0, y + offset * 2,
+                    x + offset_x * 34, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 1,
+                    x + offset_x * 34, y + offset_y * 1,
                     // back
-                    x + offset * 0, y + offset * 1,
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 1, y + offset * 2,
-                    x + offset * 0, y + offset * 2,
+                    x + offset_x * 34, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 1,
+                    x + offset_x * 34, y + offset_y * 1,
                     // left
-                    x + offset * 0, y + offset * 1,
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 1, y + offset * 2,
-                    x + offset * 0, y + offset * 2,
+                    x + offset_x * 34, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 1,
+                    x + offset_x * 34, y + offset_y * 1,
                     // right
-                    x + offset * 0, y + offset * 1,
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 1, y + offset * 2,
-                    x + offset * 0, y + offset * 2,
+                    x + offset_x * 34, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 1,
+                    x + offset_x * 34, y + offset_y * 1,
                 };
-            case BlockType_Bedrock:
+            case Bedrock:
                 return new float[] {
                     // top
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 2, y + offset * 2,
-                    x + offset * 1, y + offset * 2,
+                    x + offset_x * 14, y + offset_y * 5,
+                    x + offset_x * 13, y + offset_y * 5,
+                    x + offset_x * 13, y + offset_y * 4,
+                    x + offset_x * 14, y + offset_y * 4,
                     // bottom
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 2, y + offset * 2,
-                    x + offset * 1, y + offset * 2,
+                    x + offset_x * 14, y + offset_y * 5,
+                    x + offset_x * 13, y + offset_y * 5,
+                    x + offset_x * 13, y + offset_y * 4,
+                    x + offset_x * 14, y + offset_y * 4,
                     // front
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 2, y + offset * 2,
-                    x + offset * 1, y + offset * 2,
+                    x + offset_x * 14, y + offset_y * 4,
+                    x + offset_x * 13, y + offset_y * 4,
+                    x + offset_x * 13, y + offset_y * 5,
+                    x + offset_x * 14, y + offset_y * 5,
                     // back
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 2, y + offset * 2,
-                    x + offset * 1, y + offset * 2,
+                    x + offset_x * 13, y + offset_y * 4,
+                    x + offset_x * 14, y + offset_y * 4,
+                    x + offset_x * 14, y + offset_y * 5,
+                    x + offset_x * 13, y + offset_y * 5,
                     // left
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 2, y + offset * 2,
-                    x + offset * 1, y + offset * 2,
+                    x + offset_x * 13, y + offset_y * 5,
+                    x + offset_x * 14, y + offset_y * 5,
+                    x + offset_x * 14, y + offset_y * 4,
+                    x + offset_x * 13, y + offset_y * 4,
                     // right
-                    x + offset * 1, y + offset * 1,
-                    x + offset * 2, y + offset * 1,
-                    x + offset * 2, y + offset * 2,
-                    x + offset * 1, y + offset * 2,
+                    x + offset_x * 14, y + offset_y * 5,
+                    x + offset_x * 13, y + offset_y * 5,
+                    x + offset_x * 13, y + offset_y * 4,
+                    x + offset_x * 14, y + offset_y * 4,
                 };
-            case BlockType_Water:
+            case Water:
                 return new float[] {
                     // top
-                    x + offset * 14, y + offset * 12,
-                    x + offset * 15, y + offset * 12,
-                    x + offset * 15, y + offset * 13,
-                    x + offset * 14, y + offset * 13,
+                    x + offset_x * 37, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 8,
+                    x + offset_x * 37, y + offset_y * 8,
                     // bottom
-                    x + offset * 14, y + offset * 12,
-                    x + offset * 15, y + offset * 12,
-                    x + offset * 15, y + offset * 13,
-                    x + offset * 14, y + offset * 13,
+                    x + offset_x * 37, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 8,
+                    x + offset_x * 37, y + offset_y * 8,
                     // front
-                    x + offset * 14, y + offset * 12,
-                    x + offset * 15, y + offset * 12,
-                    x + offset * 15, y + offset * 13,
-                    x + offset * 14, y + offset * 13,
+                    x + offset_x * 37, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 8,
+                    x + offset_x * 37, y + offset_y * 8,
                     // back
-                    x + offset * 14, y + offset * 12,
-                    x + offset * 15, y + offset * 12,
-                    x + offset * 15, y + offset * 13,
-                    x + offset * 14, y + offset * 13,
+                    x + offset_x * 37, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 8,
+                    x + offset_x * 37, y + offset_y * 8,
                     // left
-                    x + offset * 14, y + offset * 12,
-                    x + offset * 15, y + offset * 12,
-                    x + offset * 15, y + offset * 13,
-                    x + offset * 14, y + offset * 13,
+                    x + offset_x * 37, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 8,
+                    x + offset_x * 37, y + offset_y * 8,
                     // right
-                    x + offset * 14, y + offset * 12,
-                    x + offset * 15, y + offset * 12,
-                    x + offset * 15, y + offset * 13,
-                    x + offset * 14, y + offset * 13,
+                    x + offset_x * 37, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 8,
+                    x + offset_x * 37, y + offset_y * 8,
                 };
-            case BlockType_Gravel:
+            case Dirt:
                 return new float[] {
                     // top
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 4, y + offset * 1,
-                    x + offset * 4, y + offset * 2,
-                    x + offset * 3, y + offset * 2,
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
                     // bottom
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 4, y + offset * 1,
-                    x + offset * 4, y + offset * 2,
-                    x + offset * 3, y + offset * 2,
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
                     // front
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 4, y + offset * 1,
-                    x + offset * 4, y + offset * 2,
-                    x + offset * 3, y + offset * 2,
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
                     // back
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 4, y + offset * 1,
-                    x + offset * 4, y + offset * 2,
-                    x + offset * 3, y + offset * 2,
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
                     // left
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 4, y + offset * 1,
-                    x + offset * 4, y + offset * 2,
-                    x + offset * 3, y + offset * 2,
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
                     // right
-                    x + offset * 3, y + offset * 1,
-                    x + offset * 4, y + offset * 1,
-                    x + offset * 4, y + offset * 2,
-                    x + offset * 3, y + offset * 2,
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
                 };
             default:
                 System.err.println("Missing texture!");

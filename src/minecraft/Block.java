@@ -1,19 +1,12 @@
 package minecraft;
 
-public class Block {
-    public enum BlockType {
-        BlockType_Gravel,
-        BlockType_Sand,
-        BlockType_Water,
-        BlockType_Dirt,
-        BlockType_Stone,
-        BlockType_Bedrock
-    }
+import minecraft.BlockTexture.BlockTextureType;
 
+public class Block {
     private boolean IsActive;
-    private BlockType type;
+    private BlockTextureType type;
     
-    public Block(BlockType type){
+    public Block(BlockTextureType type){
         this.type = type;
     }
 
@@ -23,7 +16,7 @@ public class Block {
     public void SetActive(boolean active){
         IsActive=active;
     }
-    public BlockType getBlockType(){
+    public BlockTextureType getBlockType(){
         return type;
     }
 }

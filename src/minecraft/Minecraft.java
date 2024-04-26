@@ -17,6 +17,8 @@ public class Minecraft {
         Minecraft app = new Minecraft();
         app.init();
         
+        BlockTexture.loadTextures();
+        
         CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -15.0f, 0.0f);
         Chunk chunk_1 = new Chunk(0, 0, -1);
         Chunk chunk_2 = new Chunk(-1, 0, -1);
@@ -119,7 +121,8 @@ public class Minecraft {
             glEnableClientState(GL_COLOR_ARRAY);
             glEnable(GL_TEXTURE_2D); //Texture
             glEnableClientState (GL_TEXTURE_COORD_ARRAY);
-
+            //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            //glEnable(GL_BLEND);
         } 
         catch (Exception e)
         {
