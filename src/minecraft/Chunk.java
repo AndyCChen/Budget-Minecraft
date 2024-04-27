@@ -19,7 +19,7 @@ public class Chunk {
     public static final int BLOCK_LENGTH = 2;
     
     final private Block[][][] chunk_block;
-    private int total_blocks;
+    private int total_faces;
     private int vertex_VBO;
     private int color_VBO;
     private int start_x, start_y, start_z;
@@ -63,13 +63,13 @@ public class Chunk {
             glVertexPointer(3, GL_FLOAT, 0, 0L);
             glBindBuffer(GL_ARRAY_BUFFER, color_VBO);
             glColorPointer(3, GL_FLOAT, 0, 0L);
-            glDrawArrays(GL_QUADS, 0, total_blocks * 24); // total blocks * number of vertices per block
+            glDrawArrays(GL_QUADS, 0, total_faces * 4); // total blocks * number of vertices per block
         glPopMatrix();
     }
     
     public void rebuildMesh(int start_x, int start_y, int start_z)
     {
-        total_blocks = 0;
+        total_faces = 0;
         this.start_x = start_x;
         this.start_y = start_y;
         this.start_z = start_z;
@@ -104,8 +104,7 @@ public class Chunk {
             for (int z = 0; z < CHUNK_SIZE; ++z)
             {
                 for (int y = 0; y < maxHeight[x][z]; ++y)
-                {
-                    total_blocks += 1;
+                {;
                     chunk_block[x][y][z].setBlockState(true);
                 }
             }
@@ -188,7 +187,7 @@ public class Chunk {
     
     private void addCubeFace(BlockFaces face, ArrayList cubeMesh, ArrayList textureCord, ArrayList cubeColors, Block cube)  
     {
-        //(start_x * 2 * CHUNK_SIZE) + (x * BLOCK_LENGTH), (start_y * 2 * CHUNK_SIZE) + (y * BLOCK_LENGTH), (start_z * 2 * CHUNK_SIZE) + (z * BLOCK_LENGTH)
+        total_faces += 1;
         int x = start_x * 2 * CHUNK_SIZE + cube.getX() * BLOCK_LENGTH;
         int y = start_y * 2 * CHUNK_SIZE + cube.getY() * BLOCK_LENGTH;
         int z = start_z * 2 * CHUNK_SIZE + cube.getZ() * BLOCK_LENGTH;

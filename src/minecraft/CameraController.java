@@ -10,7 +10,7 @@ public class CameraController {
     
     public CameraController(float x, float y, float z)
     {
-        position = new Vector3f(x, y, z);
+        position = new Vector3f(-x, -y, z);
     }
     
     public void strafeLeft(float distance)
