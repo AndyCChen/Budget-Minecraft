@@ -16,7 +16,7 @@ public class Minecraft {
     public static void main(String[] args) {
         Minecraft app = new Minecraft();
         app.init();
-        
+        System.out.println("running main");
         BlockTexture.loadTextures();
         
         CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -15.0f, 0.0f);
@@ -32,7 +32,6 @@ public class Minecraft {
         float velocity = 15.0f;
         float mouse_sensitivity = 0.1f;
         
-        Mouse.setGrabbed(true);
         while (!Display.isCloseRequested() && !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE))
         {
             current_time = Sys.getTime(); 
@@ -91,29 +90,17 @@ public class Minecraft {
         try
         {
             Display.setFullscreen(false);
-            DisplayMode displayMode = null;
-            DisplayMode d[] = Display.getAvailableDisplayModes();
-            for(int i = 0; i < d.length; ++i)
-            {
-                if (d[i].getHeight() == 380 && d[i].getWidth() == 640 && d[i].getBitsPerPixel() == 32)
-                {
-                    displayMode = d[i];
-                    break;
-                }
-            }
             
-            if (displayMode != null)
-            {
-                Display.setDisplayMode(displayMode);
-            }
+            //Display.setDisplayMode(new DisplayMode(1280, 720));
             
             Display.setTitle("Minecraft");
             Display.create();
+            Mouse.setGrabbed(true);
             
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
-            GLU.gluPerspective(45.0f, (float) Display.getWidth()/ (float) Display.getHeight(), 0.1f, 300.0f);
+            GLU.gluPerspective(45.0f, (float) Display.getWidth()/ (float) Display.getHeight(), 0.1f, 500.0f);
             glMatrixMode(GL_MODELVIEW);
             glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
             glEnable(GL_DEPTH_TEST);
@@ -121,6 +108,7 @@ public class Minecraft {
             glEnableClientState(GL_COLOR_ARRAY);
             glEnable(GL_TEXTURE_2D); //Texture
             glEnableClientState (GL_TEXTURE_COORD_ARRAY);
+            glEnable(GL_CULL_FACE);
             //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             //glEnable(GL_BLEND);
         } 

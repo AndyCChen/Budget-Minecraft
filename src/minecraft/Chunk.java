@@ -1,11 +1,13 @@
 package minecraft;
 
+import java.util.ArrayList;
 import java.nio.FloatBuffer;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import java.util.Random;
 import minecraft.BlockTexture.BlockTextureType;
+import minecraft.Block.BlockFaces;
 
 /**
  *
@@ -13,10 +15,11 @@ import minecraft.BlockTexture.BlockTextureType;
  */
 public class Chunk {
     final private static SimplexNoise noise = new SimplexNoise(128, 0.5, new Random().nextInt());
-    public static final int CHUNK_SIZE = 30;
+    public static final int CHUNK_SIZE = 16;
     public static final int BLOCK_LENGTH = 2;
     
-    private Block[][][] chunk_block;
+    final private Block[][][] chunk_block;
+    private int total_blocks;
     private int vertex_VBO;
     private int color_VBO;
     private int start_x, start_y, start_z;
@@ -35,7 +38,7 @@ public class Chunk {
             {
                 for (int z = 0; z < CHUNK_SIZE; ++z)
                 {
-                    chunk_block[x][y][z] = new Block( generateBlockType( r.nextInt() ) );
+                    chunk_block[x][y][z] = new Block( generateBlockType(r.nextInt()), x, y, z );
                 }
             }
         }
@@ -51,7 +54,7 @@ public class Chunk {
     }
     
     public void render()
-    {
+    {   
         glPushMatrix();
             glBindBuffer(GL_ARRAY_BUFFER, VBOTextureHandle);
             glBindTexture(GL_TEXTURE_2D, BlockTexture.getTexture().getTextureID());
@@ -60,12 +63,13 @@ public class Chunk {
             glVertexPointer(3, GL_FLOAT, 0, 0L);
             glBindBuffer(GL_ARRAY_BUFFER, color_VBO);
             glColorPointer(3, GL_FLOAT, 0, 0L);
-            glDrawArrays(GL_QUADS, 0, CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 24);
+            glDrawArrays(GL_QUADS, 0, total_blocks * 24); // total blocks * number of vertices per block
         glPopMatrix();
     }
     
     public void rebuildMesh(int start_x, int start_y, int start_z)
     {
+        total_blocks = 0;
         this.start_x = start_x;
         this.start_y = start_y;
         this.start_z = start_z;
@@ -75,7 +79,7 @@ public class Chunk {
         
         FloatBuffer vertexPositionBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 12); // 12 floats for each face of a block or 3 floats per vertex
         FloatBuffer colorBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 12);
-        FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) * 6 * 12);
+        FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) * 6 * 8);
         
         // Set noise scale and height factor
         double heightFactor = CHUNK_SIZE / 2;  // Controls the variation in height
@@ -85,7 +89,11 @@ public class Chunk {
         for (int x = 0; x < CHUNK_SIZE; ++x) {
             for (int z = 0; z < CHUNK_SIZE; ++z) {
                 // Using getNoise to generate height
-                double noiseValue = noise.getNoise( start_x * CHUNK_SIZE + x,start_z * CHUNK_SIZE + z );
+                
+                int nx = start_x * CHUNK_SIZE + x;
+                int ny = start_z * CHUNK_SIZE + z;            
+                
+                double noiseValue = noise.getNoise(nx, ny);
                 int calculatedHeight = (int)(noiseValue * heightFactor + CHUNK_SIZE / 4);
                 maxHeight[x][z] = Math.max(1, Math.min(calculatedHeight, CHUNK_SIZE - 1));  // Ensure height is within bounds
             }
@@ -93,19 +101,77 @@ public class Chunk {
         
         for (int x = 0; x < CHUNK_SIZE; ++x)
         {
-            for (int y = 0; y < CHUNK_SIZE; ++y)
+            for (int z = 0; z < CHUNK_SIZE; ++z)
             {
-                for (int z = 0; z < CHUNK_SIZE; ++z)
+                for (int y = 0; y < maxHeight[x][z]; ++y)
                 {
-                    if(y < maxHeight[x][z]){
-                        vertexPositionBuffer.put( createCube( (start_x * 2 * CHUNK_SIZE) + (x * BLOCK_LENGTH), (start_y * 2 * CHUNK_SIZE) + (y * BLOCK_LENGTH), (start_z * 2 * CHUNK_SIZE) + (z * BLOCK_LENGTH) ) );
-                        VertexTextureData.put(createTexCube((float) 0, (float) 0,chunk_block[x][y][z]));
-                        colorBuffer.put( createCubeVertexCol( getCubeColor( chunk_block[x][y][z] ) ) );
-                    }
+                    total_blocks += 1;
+                    chunk_block[x][y][z].setBlockState(true);
                 }
             }
         }
-
+        
+        // building mesh for entire chunk
+        // only faces that are adjacent to inactive block will be rendered
+        for (int x = 0; x < CHUNK_SIZE; ++x)
+        {
+            for (int z = 0; z < CHUNK_SIZE; ++z)
+            {
+                for (int y = 0; y < maxHeight[x][z]; ++y)
+                {
+                    ArrayList<Float> cubeMesh = new ArrayList<Float>();
+                    ArrayList<Float> cubeTextureCoordinates = new ArrayList<Float>();
+                    ArrayList<Float> cubeColor = new ArrayList<Float>();
+                    
+                    // check back neighbor
+                    if ( z == 0 || !chunk_block[x][y][z - 1].getBlockState() )
+                    {
+                        addCubeFace(BlockFaces.Back, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                    }
+                    // check front neighbor
+                    if ( z + 1 == CHUNK_SIZE || !chunk_block[x][y][z + 1].getBlockState() )
+                    {
+                        addCubeFace(BlockFaces.Front, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                    }
+                    
+                    // check left neighbor
+                    if ( x == 0 || !chunk_block[x-1][y][z].getBlockState() )
+                    {
+                        addCubeFace(BlockFaces.Left, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                    }
+                    // check right neighbor
+                    if ( x + 1 == CHUNK_SIZE || !chunk_block[x+1][y][z].getBlockState() )
+                    {
+                        addCubeFace(BlockFaces.Right, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                    }
+                    
+                    // check bottom neighbor
+                    if ( y == 0 || !chunk_block[x][y - 1][z].getBlockState() )
+                    {
+                        addCubeFace(BlockFaces.Bottom, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                    }
+                    // check top neightbor
+                    if ( y + 1 < CHUNK_SIZE && !chunk_block[x][y + 1][z].getBlockState() )
+                    {
+                        addCubeFace(BlockFaces.Top, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                    }
+                    
+                    for (int i = 0; i < cubeMesh.size(); ++i) 
+                    {
+                        vertexPositionBuffer.put( cubeMesh.get(i) );
+                    }
+                    for (int i = 0; i < cubeTextureCoordinates.size(); ++i) 
+                    {
+                        VertexTextureData.put( cubeTextureCoordinates.get(i) );
+                    }
+                    for (int i = 0; i < cubeColor.size(); ++i) 
+                    {
+                        colorBuffer.put( cubeColor.get(i) );
+                    }
+                }
+            }
+        } 
+        
         vertexPositionBuffer.flip();
         colorBuffer.flip();
         VertexTextureData.flip();
@@ -120,59 +186,150 @@ public class Chunk {
         glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind buffer
     }
     
-    private float[] createCubeVertexCol(float[] CubeColorArray) {
-        float[] cubeColors = new float[CubeColorArray.length * 4 * 6];
-        for (int i = 0; i < cubeColors.length; i++) {
-            cubeColors[i] = CubeColorArray[i % CubeColorArray.length];
+    private void addCubeFace(BlockFaces face, ArrayList cubeMesh, ArrayList textureCord, ArrayList cubeColors, Block cube)  
+    {
+        //(start_x * 2 * CHUNK_SIZE) + (x * BLOCK_LENGTH), (start_y * 2 * CHUNK_SIZE) + (y * BLOCK_LENGTH), (start_z * 2 * CHUNK_SIZE) + (z * BLOCK_LENGTH)
+        int x = start_x * 2 * CHUNK_SIZE + cube.getX() * BLOCK_LENGTH;
+        int y = start_y * 2 * CHUNK_SIZE + cube.getY() * BLOCK_LENGTH;
+        int z = start_z * 2 * CHUNK_SIZE + cube.getZ() * BLOCK_LENGTH;
+        
+        float color[] = getCubeColor(cube);
+        
+        switch (face) {
+            case Back:
+                createCubeMeshFace(x, y, z, BlockFaces.Back, cubeMesh);
+                createCubeFaceTexture(cube, BlockFaces.Back, textureCord);
+                createCubeFaceColor(color, cubeColors);
+                break;
+            case Front:
+                createCubeMeshFace(x, y, z, BlockFaces.Front, cubeMesh);
+                createCubeFaceTexture(cube, BlockFaces.Front, textureCord);
+                createCubeFaceColor(color, cubeColors);
+                break;
+            case Left:
+                createCubeMeshFace(x, y, z, BlockFaces.Left, cubeMesh);
+                createCubeFaceTexture(cube, BlockFaces.Left, textureCord);
+                createCubeFaceColor(color, cubeColors);
+                break;
+            case Right:
+                createCubeMeshFace(x, y, z, BlockFaces.Right, cubeMesh);
+                createCubeFaceTexture(cube, BlockFaces.Right, textureCord);
+                createCubeFaceColor(color, cubeColors);
+                break;
+            case Bottom:
+                createCubeMeshFace(x, y, z, BlockFaces.Bottom, cubeMesh);
+                createCubeFaceTexture(cube, BlockFaces.Bottom, textureCord);
+                createCubeFaceColor(color, cubeColors);
+                break;
+            case Top:
+                createCubeMeshFace(x, y, z, BlockFaces.Top, cubeMesh);
+                createCubeFaceTexture(cube, BlockFaces.Top, textureCord);
+                createCubeFaceColor(color, cubeColors);
+                break;    
         }
-        return cubeColors;
+    }
+    
+    private void createCubeFaceColor(float[] color, ArrayList<Float> cubeColors) 
+    {
+        for (int i = 0; i < color.length * 4; ++i)
+        {
+            cubeColors.add( color[i % color.length] );
+        }
     }
 
-    private float[] getCubeColor(Block block) {
+    private float[] getCubeColor(Block block) 
+    {
         return new float[] { 0.7f, 0.7f, 0.7f };
     }
     
-    private float[] createCube(float x, float y, float z)
+    private void createCubeMeshFace(float x, float y, float z, BlockFaces face, ArrayList<Float> cubeMesh)
     {
         int offset = BLOCK_LENGTH / 2;
-        
-        return new float[] {
-            // top
-            x + offset, y + offset, z,
-            x - offset, y + offset, z,
-            x - offset, y + offset, z - BLOCK_LENGTH,
-            x + offset, y + offset, z - BLOCK_LENGTH,
-            
-            // bottom
-            x + offset, y - offset, z,
-            x - offset, y - offset, z,
-            x - offset, y - offset, z - BLOCK_LENGTH,
-            x + offset, y - offset, z - BLOCK_LENGTH,
-            
-            // front
-            x + offset, y - offset, z,
-            x - offset, y - offset, z,
-            x - offset, y + offset, z,
-            x + offset, y + offset, z,
-            
-            // back
-            x + offset, y - offset, z - BLOCK_LENGTH,
-            x - offset, y - offset, z - BLOCK_LENGTH,
-            x - offset, y + offset, z - BLOCK_LENGTH,
-            x + offset, y + offset, z - BLOCK_LENGTH,
-            
-            // left
-            x - offset, y + offset, z - BLOCK_LENGTH,
-            x - offset, y + offset, z,
-            x - offset, y - offset, z,
-            x - offset, y - offset, z - BLOCK_LENGTH,
-        
-            // right
-            x + offset, y + offset, z - BLOCK_LENGTH,
-            x + offset, y + offset, z,
-            x + offset, y - offset, z,
-            x + offset, y - offset, z - BLOCK_LENGTH,
-        };
+        switch (face)
+        {
+            case Back:
+            {
+                float back[] = new float[] {
+                    x + offset, y + offset, z - BLOCK_LENGTH,
+                    x + offset, y - offset, z - BLOCK_LENGTH,
+                    x - offset, y - offset, z - BLOCK_LENGTH,
+                    x - offset, y + offset, z - BLOCK_LENGTH,
+                };
+                moveFloatArrayToArrayList(cubeMesh, back);
+                break;
+            }
+            case Front:
+            {
+                float front[] = new float[] {
+                    x + offset, y - offset, z,
+                    x + offset, y + offset, z,
+                    x - offset, y + offset, z,
+                    x - offset, y - offset, z,
+                };
+                moveFloatArrayToArrayList(cubeMesh, front);
+                break;
+            }
+            case Left:
+            {
+                float left[] = new float[] {
+                    x - offset, y + offset, z,
+                    x - offset, y + offset, z - BLOCK_LENGTH,
+                    x - offset, y - offset, z - BLOCK_LENGTH,
+                    x - offset, y - offset, z,
+                };
+                moveFloatArrayToArrayList(cubeMesh, left);
+                break;
+            }
+            case Right:
+            {
+                float right[] = new float[] {
+                    x + offset, y + offset, z - BLOCK_LENGTH,
+                    x + offset, y + offset, z,
+                    x + offset, y - offset, z,
+                    x + offset, y - offset, z - BLOCK_LENGTH,
+                };
+                moveFloatArrayToArrayList(cubeMesh, right);
+                break;
+            }
+            case Bottom:
+            {
+                float bottom[] = new float[] {
+                    x + offset, y - offset, z,
+                    x - offset, y - offset, z,
+                    x - offset, y - offset, z - BLOCK_LENGTH,
+                    x + offset, y - offset, z - BLOCK_LENGTH,
+                };
+                moveFloatArrayToArrayList(cubeMesh, bottom);
+                break;
+            }
+            case Top:
+            {
+                float top[] = new float[] {
+                    x - offset, y + offset, z,
+                    x + offset, y + offset, z,
+                    x + offset, y + offset, z - BLOCK_LENGTH,  
+                    x - offset, y + offset, z - BLOCK_LENGTH,
+                };
+                moveFloatArrayToArrayList(cubeMesh, top);
+                break;
+            }
+        }
+    }
+    
+    private void moveFloatArrayToArrayList(ArrayList<Float> destination, float[] data)
+    {
+        for (int i = 0; i < data.length; ++i)
+        {
+            destination.add( data[i] );
+        }
+    }
+    
+    private void addElements(int startIndex, int numberOfElementsToAdd, float[] data, ArrayList<Float> destination)
+    {
+        for (int i = startIndex; i < startIndex + numberOfElementsToAdd; ++i)
+        {
+            destination.add( data[i] );
+        }
     }
     
     private BlockTextureType generateBlockType(int r)
@@ -181,66 +338,59 @@ public class Chunk {
         return types[ Math.abs(r % types.length) ];
     }
     
-    public static float[] createTexCube(float x, float y, Block block) {
+    public void createCubeFaceTexture(Block block, BlockFaces face, ArrayList<Float> faceTextureCoordinates) {
+        float x = 0.0f;
+        float y = 0.0f;
         float offset_x = (1024.0f / 64) / 1024f;
         float offset_y = ( 512.0f / 32 ) / 512.0f;
+        
+        float[] coordinates = null;
         
         switch (block.getBlockType())
         {
             case Grass:
-                return new float[] {
-                    // TOP
-                    x + offset_x*23, y + offset_y*17,
-                    x + offset_x*24, y + offset_y*17,
-                    x + offset_x*24, y + offset_y*18,
-                    x + offset_x*23, y + offset_y*18,
-                    // BOTTOM
-                    x + offset_x*25, y + offset_y*2,
-                    x + offset_x*26, y + offset_y*2,
-                    x + offset_x*26, y + offset_y*3,
-                    x + offset_x*25, y + offset_y*3,
-                    // FRONT QUAD
-                    
-                    x + offset_x*20, y + offset_y*18,
-                    x + offset_x*21, y + offset_y*18,
-                    x + offset_x*21, y + offset_y*17,
-                    x + offset_x*20, y + offset_y*17,
-                    
+                coordinates = new float[] {
                     // BACK QUAD
+                    x + offset_x*20, y + offset_y*17,
                     x + offset_x*20, y + offset_y*18,
                     x + offset_x*21, y + offset_y*18,
                     x + offset_x*21, y + offset_y*17,
+                    // FRONT QUAD
+                    x + offset_x*21, y + offset_y*18,
+                    x + offset_x*21, y + offset_y*17,
                     x + offset_x*20, y + offset_y*17,
+                    x + offset_x*20, y + offset_y*18,
                     
                     // LEFT QUAD
-                    x + offset_x*20, y + offset_y*17,
                     x + offset_x*21, y + offset_y*17,
-                    x + offset_x*21, y + offset_y*18,
+                    x + offset_x*20, y + offset_y*17,
                     x + offset_x*20, y + offset_y*18,
+                    x + offset_x*21, y + offset_y*18,
                     // RIGHT QUAD
                     x + offset_x*20, y + offset_y*17,
                     x + offset_x*21, y + offset_y*17,
                     x + offset_x*21, y + offset_y*18,
                     x + offset_x*20, y + offset_y*18,
+                    // BOTTOM
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
+                    // TOP
+                    x + offset_x*23, y + offset_y*17,
+                    x + offset_x*24, y + offset_y*17,
+                    x + offset_x*24, y + offset_y*18,
+                    x + offset_x*23, y + offset_y*18,  
                 };
+                break;
             case Sand:
-                return new float[] {
-                    // top
-                    x + offset_x * 2, y + offset_y * 32,
-                    x + offset_x * 1, y + offset_y * 32,
-                    x + offset_x * 1, y + offset_y * 31,
-                    x + offset_x * 2, y + offset_y * 31,
-                    // bottom
+                coordinates = new float[] {
+                    // back
                     x + offset_x * 1, y + offset_y * 31,
                     x + offset_x * 2, y + offset_y * 31,
                     x + offset_x * 2, y + offset_y * 32,
                     x + offset_x * 1, y + offset_y * 32,
                     // front
-                    x + offset_x * 1, y + offset_y * 31,
-                    x + offset_x * 2, y + offset_y * 31,
-                    x + offset_x * 2, y + offset_y * 32,
-                    x + offset_x * 1, y + offset_y * 32,
-                    // back
                     x + offset_x * 1, y + offset_y * 31,
                     x + offset_x * 2, y + offset_y * 31,
                     x + offset_x * 2, y + offset_y * 32,
@@ -255,25 +405,26 @@ public class Chunk {
                     x + offset_x * 2, y + offset_y * 31,
                     x + offset_x * 2, y + offset_y * 32,
                     x + offset_x * 1, y + offset_y * 32,
+                    // bottom
+                    x + offset_x * 1, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 32,
+                    // top
+                    x + offset_x * 2, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 32,
+                    x + offset_x * 1, y + offset_y * 31,
+                    x + offset_x * 2, y + offset_y * 31,  
                 };
+                break;
             case Stone:
-                return new float[] {
-                    // top
-                    x + offset_x * 34, y + offset_y * 0,
-                    x + offset_x * 35, y + offset_y * 0,
-                    x + offset_x * 35, y + offset_y * 1,
-                    x + offset_x * 34, y + offset_y * 1,
-                    // bottom
+                coordinates = new float[] {
+                    // back
                     x + offset_x * 34, y + offset_y * 0,
                     x + offset_x * 35, y + offset_y * 0,
                     x + offset_x * 35, y + offset_y * 1,
                     x + offset_x * 34, y + offset_y * 1,
                     // front
-                    x + offset_x * 34, y + offset_y * 0,
-                    x + offset_x * 35, y + offset_y * 0,
-                    x + offset_x * 35, y + offset_y * 1,
-                    x + offset_x * 34, y + offset_y * 1,
-                    // back
                     x + offset_x * 34, y + offset_y * 0,
                     x + offset_x * 35, y + offset_y * 0,
                     x + offset_x * 35, y + offset_y * 1,
@@ -288,9 +439,20 @@ public class Chunk {
                     x + offset_x * 35, y + offset_y * 0,
                     x + offset_x * 35, y + offset_y * 1,
                     x + offset_x * 34, y + offset_y * 1,
+                    // bottom
+                    x + offset_x * 34, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 1,
+                    x + offset_x * 34, y + offset_y * 1,
+                    // top
+                    x + offset_x * 34, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 0,
+                    x + offset_x * 35, y + offset_y * 1,
+                    x + offset_x * 34, y + offset_y * 1,
                 };
+                break;
             case Bedrock:
-                return new float[] {
+                coordinates = new float[] {
                     // top
                     x + offset_x * 14, y + offset_y * 5,
                     x + offset_x * 13, y + offset_y * 5,
@@ -322,24 +484,15 @@ public class Chunk {
                     x + offset_x * 13, y + offset_y * 4,
                     x + offset_x * 14, y + offset_y * 4,
                 };
+                break;
             case Water:
-                return new float[] {
-                    // top
-                    x + offset_x * 37, y + offset_y * 7,
-                    x + offset_x * 38, y + offset_y * 7,
-                    x + offset_x * 38, y + offset_y * 8,
-                    x + offset_x * 37, y + offset_y * 8,
-                    // bottom
+                coordinates = new float[] {
+                    // back
                     x + offset_x * 37, y + offset_y * 7,
                     x + offset_x * 38, y + offset_y * 7,
                     x + offset_x * 38, y + offset_y * 8,
                     x + offset_x * 37, y + offset_y * 8,
                     // front
-                    x + offset_x * 37, y + offset_y * 7,
-                    x + offset_x * 38, y + offset_y * 7,
-                    x + offset_x * 38, y + offset_y * 8,
-                    x + offset_x * 37, y + offset_y * 8,
-                    // back
                     x + offset_x * 37, y + offset_y * 7,
                     x + offset_x * 38, y + offset_y * 7,
                     x + offset_x * 38, y + offset_y * 8,
@@ -354,25 +507,26 @@ public class Chunk {
                     x + offset_x * 38, y + offset_y * 7,
                     x + offset_x * 38, y + offset_y * 8,
                     x + offset_x * 37, y + offset_y * 8,
+                    // bottom
+                    x + offset_x * 37, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 8,
+                    x + offset_x * 37, y + offset_y * 8,
+                    // top
+                    x + offset_x * 37, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 7,
+                    x + offset_x * 38, y + offset_y * 8,
+                    x + offset_x * 37, y + offset_y * 8,   
                 };
+                break;
             case Dirt:
-                return new float[] {
-                    // top
-                    x + offset_x*25, y + offset_y*2,
-                    x + offset_x*26, y + offset_y*2,
-                    x + offset_x*26, y + offset_y*3,
-                    x + offset_x*25, y + offset_y*3,
-                    // bottom
+                coordinates = new float[] {
+                    // back
                     x + offset_x*25, y + offset_y*2,
                     x + offset_x*26, y + offset_y*2,
                     x + offset_x*26, y + offset_y*3,
                     x + offset_x*25, y + offset_y*3,
                     // front
-                    x + offset_x*25, y + offset_y*2,
-                    x + offset_x*26, y + offset_y*2,
-                    x + offset_x*26, y + offset_y*3,
-                    x + offset_x*25, y + offset_y*3,
-                    // back
                     x + offset_x*25, y + offset_y*2,
                     x + offset_x*26, y + offset_y*2,
                     x + offset_x*26, y + offset_y*3,
@@ -387,10 +541,54 @@ public class Chunk {
                     x + offset_x*26, y + offset_y*2,
                     x + offset_x*26, y + offset_y*3,
                     x + offset_x*25, y + offset_y*3,
+                    // bottom
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3, 
+                    // top
+                    x + offset_x*25, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*2,
+                    x + offset_x*26, y + offset_y*3,
+                    x + offset_x*25, y + offset_y*3,
                 };
+                break;
             default:
                 System.err.println("Missing texture!");
-                return null;
-        } 
+        }
+        
+        switch (face)
+        {
+            case Back:
+            {
+                addElements(0, 8, coordinates, faceTextureCoordinates);
+                break;
+            }
+            case Front:
+            {
+                addElements(8, 8, coordinates, faceTextureCoordinates);
+                break;
+            }
+            case Left:
+            {
+                addElements(16, 8, coordinates, faceTextureCoordinates);
+                break;
+            }
+            case Right:
+            {
+                addElements(24, 8, coordinates, faceTextureCoordinates);
+                break;
+            }
+            case Bottom:
+            {
+                addElements(32, 8, coordinates, faceTextureCoordinates);
+                break;
+            }
+            case Top:
+            {
+                addElements(40, 8, coordinates, faceTextureCoordinates);
+                break;
+            }
+        }
     }
 }
