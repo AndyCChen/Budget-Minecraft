@@ -9,10 +9,6 @@ import java.util.Random;
 import minecraft.BlockTexture.BlockTextureType;
 import minecraft.Block.BlockFaces;
 
-/**
- *
- * @author Andy
- */
 public class Chunk {
     final private static SimplexNoise noise = new SimplexNoise(128, 0.5, new Random().nextInt());
     public static final int CHUNK_SIZE = 16;
@@ -30,11 +26,11 @@ public class Chunk {
     {
         Random r = new Random();
         
-        chunk_block = new Block[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+        chunk_block = new Block[CHUNK_SIZE][World.WORLD_HEIGHT][CHUNK_SIZE];
         
         for (int x = 0; x < CHUNK_SIZE; ++x)
         {
-            for (int y = 0; y < CHUNK_SIZE; ++y)
+            for (int y = 0; y < World.WORLD_HEIGHT; ++y)
             {
                 for (int z = 0; z < CHUNK_SIZE; ++z)
                 {
@@ -77,12 +73,12 @@ public class Chunk {
         vertex_VBO = glGenBuffers();
         color_VBO = glGenBuffers();
         
-        FloatBuffer vertexPositionBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 12); // 12 floats for each face of a block or 3 floats per vertex
-        FloatBuffer colorBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE * 6 * 12);
-        FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE) * 6 * 8);
+        FloatBuffer vertexPositionBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE * 6 * 12); // 12 floats for each face of a block or 3 floats per vertex
+        FloatBuffer colorBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE * 6 * 12);
+        FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE) * 6 * 8);
         
         // Set noise scale and height factor
-        double heightFactor = CHUNK_SIZE / 2;  // Controls the variation in height
+        double heightFactor = World.WORLD_HEIGHT / 2;  // Controls the variation in height
 
         // Calculate maximum height for each column based on noise
         int[][] maxHeight = new int[CHUNK_SIZE][CHUNK_SIZE];
@@ -95,7 +91,7 @@ public class Chunk {
                 
                 double noiseValue = noise.getNoise(nx, ny);
                 int calculatedHeight = (int)(noiseValue * heightFactor + CHUNK_SIZE / 4);
-                maxHeight[x][z] = Math.max(1, Math.min(calculatedHeight, CHUNK_SIZE - 1));  // Ensure height is within bounds
+                maxHeight[x][z] = Math.max(1, Math.min(calculatedHeight, World.WORLD_HEIGHT - 1));  // Ensure height is within bounds
             }
         }
         
@@ -104,7 +100,7 @@ public class Chunk {
             for (int z = 0; z < CHUNK_SIZE; ++z)
             {
                 for (int y = 0; y < maxHeight[x][z]; ++y)
-                {;
+                {
                     chunk_block[x][y][z].setBlockState(true);
                 }
             }
@@ -150,7 +146,7 @@ public class Chunk {
                         addCubeFace(BlockFaces.Bottom, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
                     }
                     // check top neightbor
-                    if ( y + 1 < CHUNK_SIZE && !chunk_block[x][y + 1][z].getBlockState() )
+                    if ( y + 1 < World.WORLD_HEIGHT && !chunk_block[x][y + 1][z].getBlockState() )
                     {
                         addCubeFace(BlockFaces.Top, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
                     }
@@ -189,7 +185,7 @@ public class Chunk {
     {
         total_faces += 1;
         int x = start_x * 2 * CHUNK_SIZE + cube.getX() * BLOCK_LENGTH;
-        int y = start_y * 2 * CHUNK_SIZE + cube.getY() * BLOCK_LENGTH;
+        int y = start_y * 2 * World.WORLD_HEIGHT + cube.getY() * BLOCK_LENGTH;
         int z = start_z * 2 * CHUNK_SIZE + cube.getZ() * BLOCK_LENGTH;
         
         float color[] = getCubeColor(cube);
@@ -249,10 +245,10 @@ public class Chunk {
             case Back:
             {
                 float back[] = new float[] {
-                    x + offset, y + offset, z - BLOCK_LENGTH,
-                    x + offset, y - offset, z - BLOCK_LENGTH,
-                    x - offset, y - offset, z - BLOCK_LENGTH,
-                    x - offset, y + offset, z - BLOCK_LENGTH,
+                    x + offset, y + offset, z - offset,
+                    x + offset, y - offset, z - offset,
+                    x - offset, y - offset, z - offset,
+                    x - offset, y + offset, z - offset,
                 };
                 moveFloatArrayToArrayList(cubeMesh, back);
                 break;
@@ -260,10 +256,10 @@ public class Chunk {
             case Front:
             {
                 float front[] = new float[] {
-                    x + offset, y - offset, z,
-                    x + offset, y + offset, z,
-                    x - offset, y + offset, z,
-                    x - offset, y - offset, z,
+                    x + offset, y - offset, z + offset,
+                    x + offset, y + offset, z + offset,
+                    x - offset, y + offset, z + offset,
+                    x - offset, y - offset, z + offset,
                 };
                 moveFloatArrayToArrayList(cubeMesh, front);
                 break;
@@ -271,10 +267,10 @@ public class Chunk {
             case Left:
             {
                 float left[] = new float[] {
-                    x - offset, y + offset, z,
-                    x - offset, y + offset, z - BLOCK_LENGTH,
-                    x - offset, y - offset, z - BLOCK_LENGTH,
-                    x - offset, y - offset, z,
+                    x - offset, y + offset, z + offset,
+                    x - offset, y + offset, z - offset,
+                    x - offset, y - offset, z - offset,
+                    x - offset, y - offset, z + offset,
                 };
                 moveFloatArrayToArrayList(cubeMesh, left);
                 break;
@@ -282,10 +278,10 @@ public class Chunk {
             case Right:
             {
                 float right[] = new float[] {
-                    x + offset, y + offset, z - BLOCK_LENGTH,
-                    x + offset, y + offset, z,
-                    x + offset, y - offset, z,
-                    x + offset, y - offset, z - BLOCK_LENGTH,
+                    x + offset, y + offset, z - offset,
+                    x + offset, y + offset, z + offset,
+                    x + offset, y - offset, z + offset,
+                    x + offset, y - offset, z - offset,
                 };
                 moveFloatArrayToArrayList(cubeMesh, right);
                 break;
@@ -293,10 +289,10 @@ public class Chunk {
             case Bottom:
             {
                 float bottom[] = new float[] {
-                    x + offset, y - offset, z,
-                    x - offset, y - offset, z,
-                    x - offset, y - offset, z - BLOCK_LENGTH,
-                    x + offset, y - offset, z - BLOCK_LENGTH,
+                    x + offset, y - offset, z + offset,
+                    x - offset, y - offset, z + offset,
+                    x - offset, y - offset, z - offset,
+                    x + offset, y - offset, z - offset,
                 };
                 moveFloatArrayToArrayList(cubeMesh, bottom);
                 break;
@@ -304,10 +300,10 @@ public class Chunk {
             case Top:
             {
                 float top[] = new float[] {
-                    x - offset, y + offset, z,
-                    x + offset, y + offset, z,
-                    x + offset, y + offset, z - BLOCK_LENGTH,  
-                    x - offset, y + offset, z - BLOCK_LENGTH,
+                    x - offset, y + offset, z + offset,
+                    x + offset, y + offset, z + offset,
+                    x + offset, y + offset, z - offset,  
+                    x - offset, y + offset, z - offset,
                 };
                 moveFloatArrayToArrayList(cubeMesh, top);
                 break;

@@ -10,20 +10,15 @@ import org.lwjgl.util.glu.GLU;
 
 public class Minecraft {
 
-    /**
-     * @param args the command line arguments
-     */
     public static void main(String[] args) {
+        final int RADIUS = 3;
         Minecraft app = new Minecraft();
         app.init();
-        System.out.println("running main");
-        BlockTexture.loadTextures();
         
-        CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -15.0f, 0.0f);
-        Chunk chunk_1 = new Chunk(0, 0, -1);
-        Chunk chunk_2 = new Chunk(-1, 0, -1);
-        Chunk chunk_3 = new Chunk(0, 0, 0);
-        Chunk chunk_4 = new Chunk(-1, 0, 0);
+        BlockTexture.loadTextures();
+
+        CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * 15.0f, 0.0f);
+        World.createChunks(RADIUS);
         
         float dt = 0;
         long previous_time = 0;
@@ -70,11 +65,10 @@ public class Minecraft {
             camera.lookThrough();
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            chunk_1.render();
-            chunk_2.render();
-            chunk_3.render();
-            chunk_4.render();
             
+            World.renderChunks();
+            
+            World.printCoor();
             Display.update();
             Display.sync(60);
         }
@@ -91,9 +85,9 @@ public class Minecraft {
         {
             Display.setFullscreen(false);
             
-            //Display.setDisplayMode(new DisplayMode(1280, 720));
+            Display.setDisplayMode(new DisplayMode(1280, 720));
             
-            Display.setTitle("Minecraft");
+            Display.setTitle("Minecraft: Budget Edition");
             Display.create();
             Mouse.setGrabbed(true);
             

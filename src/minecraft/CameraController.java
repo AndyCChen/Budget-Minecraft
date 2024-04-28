@@ -8,6 +8,8 @@ public class CameraController {
     public float pitch = 0.0f; // rotation around x axis
     public float yaw = 0.0f;   // rotation around y axis
     
+    private int dec_x = 0;
+    
     public CameraController(float x, float y, float z)
     {
         position = new Vector3f(-x, -y, z);
@@ -20,6 +22,7 @@ public class CameraController {
         
         position.x -= x_offset;
         position.z += z_offset;
+        updatePlayerWorldPosition();
     }
     
     public void strafeRight(float distance)
@@ -29,6 +32,7 @@ public class CameraController {
         
         position.x -= x_offset;
         position.z += z_offset;
+        updatePlayerWorldPosition();
     }
     
     public void move_foward(float distance)
@@ -38,6 +42,7 @@ public class CameraController {
         
         position.x -= x_offset;
         position.z += z_offset;
+        updatePlayerWorldPosition();
     }
     
     public void move_backward(float distance)
@@ -47,6 +52,7 @@ public class CameraController {
         
         position.x += x_offset;
         position.z -= z_offset;
+        updatePlayerWorldPosition();
     }
     
     public void move_up(float distance)
@@ -64,5 +70,17 @@ public class CameraController {
         glRotatef(pitch, 1.0f, 0.0f, 0.0f);
         glRotatef(yaw, 0.0f, 1.0f, 0.0f);
         glTranslatef(position.x, position.y, position.z);
+    }
+    
+    private void updatePlayerWorldPosition()
+    {
+        int pos_x = (int) position.x;
+        int pos_z = (int) position.z;
+        float pos_x_float = (float) pos_x / Chunk.BLOCK_LENGTH;
+        float pos_z_float = (float) pos_z / Chunk.BLOCK_LENGTH;
+        
+        World.updatePlayerPosition_x( pos_x_float >= 0 ? (int) Math.ceil( pos_x_float ) : (int) Math.floor( pos_x_float ) );
+        World.updatePlayerPosition_z( pos_z_float >= 0 ? (int) Math.ceil( pos_z_float ) : (int) Math.floor( pos_z_float ) );
+        
     }
 }
