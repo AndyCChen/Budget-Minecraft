@@ -8,8 +8,6 @@ public class CameraController {
     public float pitch = 0.0f; // rotation around x axis
     public float yaw = 0.0f;   // rotation around y axis
     
-    private int dec_x = 0;
-    
     public CameraController(float x, float y, float z)
     {
         position = new Vector3f(x, y, z);

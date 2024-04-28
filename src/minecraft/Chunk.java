@@ -2,6 +2,7 @@ package minecraft;
 
 import java.util.ArrayList;
 import java.nio.FloatBuffer;
+import java.time.Year;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -24,21 +25,7 @@ public class Chunk {
     
     public Chunk(int start_x, int start_y, int start_z)
     {
-        Random r = new Random();
-        
         chunk_block = new Block[CHUNK_SIZE][World.WORLD_HEIGHT][CHUNK_SIZE];
-        
-        for (int x = 0; x < CHUNK_SIZE; ++x)
-        {
-            for (int y = 0; y < World.WORLD_HEIGHT; ++y)
-            {
-                for (int z = 0; z < CHUNK_SIZE; ++z)
-                {
-                    chunk_block[x][y][z] = new Block( generateBlockType(r.nextInt()), x, y, z );
-                }
-            }
-        }
-        
         vertex_VBO = glGenBuffers();
         color_VBO = glGenBuffers();
         VBOTextureHandle = glGenBuffers();
@@ -77,6 +64,18 @@ public class Chunk {
         FloatBuffer colorBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE * 6 * 12);
         FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE) * 6 * 8);
         
+        Random r = new Random();
+        for (int x = 0; x < CHUNK_SIZE; ++x)
+        {
+            for (int y = 0; y < World.WORLD_HEIGHT; ++y)
+            {
+                for (int z = 0; z < CHUNK_SIZE; ++z)
+                {
+                    chunk_block[x][y][z] = new Block( generateBlockType(r.nextInt()), x, y, z );
+                }
+            }
+        }
+        
         // Set noise scale and height factor
         double heightFactor = World.WORLD_HEIGHT / 2;  // Controls the variation in height
 
@@ -114,41 +113,41 @@ public class Chunk {
             {
                 for (int y = 0; y < maxHeight[x][z]; ++y)
                 {
-                    ArrayList<Float> cubeMesh = new ArrayList<Float>();
-                    ArrayList<Float> cubeTextureCoordinates = new ArrayList<Float>();
-                    ArrayList<Float> cubeColor = new ArrayList<Float>();
+                    ArrayList<Float> cubeMesh = new ArrayList<>();
+                    ArrayList<Float> cubeTextureCoordinates = new ArrayList<>();
+                    ArrayList<Float> cubeColor = new ArrayList<>();
                     
                     // check back neighbor
                     if ( z == 0 || !chunk_block[x][y][z - 1].getBlockState() )
                     {
-                        addCubeFace(BlockFaces.Back, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                        addCubeFace(BlockFaces.Back, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     // check front neighbor
                     if ( z + 1 == CHUNK_SIZE || !chunk_block[x][y][z + 1].getBlockState() )
                     {
-                        addCubeFace(BlockFaces.Front, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                        addCubeFace(BlockFaces.Front, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     
                     // check left neighbor
                     if ( x == 0 || !chunk_block[x-1][y][z].getBlockState() )
                     {
-                        addCubeFace(BlockFaces.Left, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                        addCubeFace(BlockFaces.Left, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     // check right neighbor
                     if ( x + 1 == CHUNK_SIZE || !chunk_block[x+1][y][z].getBlockState() )
                     {
-                        addCubeFace(BlockFaces.Right, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                        addCubeFace(BlockFaces.Right, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     
                     // check bottom neighbor
                     if ( y == 0 || !chunk_block[x][y - 1][z].getBlockState() )
                     {
-                        addCubeFace(BlockFaces.Bottom, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                        addCubeFace(BlockFaces.Bottom, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     // check top neightbor
                     if ( y + 1 < World.WORLD_HEIGHT && !chunk_block[x][y + 1][z].getBlockState() )
                     {
-                        addCubeFace(BlockFaces.Top, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z]);
+                        addCubeFace(BlockFaces.Top, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     
                     for (int i = 0; i < cubeMesh.size(); ++i) 
@@ -181,12 +180,12 @@ public class Chunk {
         glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind buffer
     }
     
-    private void addCubeFace(BlockFaces face, ArrayList cubeMesh, ArrayList textureCord, ArrayList cubeColors, Block cube)  
+    private void addCubeFace(BlockFaces face, ArrayList cubeMesh, ArrayList textureCord, ArrayList cubeColors, Block cube, int cubeX, int cubeY, int cubeZ)  
     {
         total_faces += 1;
-        int x = start_x * 2 * CHUNK_SIZE + cube.getX() * BLOCK_LENGTH;
-        int y = start_y * 2 * World.WORLD_HEIGHT + cube.getY() * BLOCK_LENGTH;
-        int z = start_z * 2 * CHUNK_SIZE + cube.getZ() * BLOCK_LENGTH;
+        int x = start_x * 2 * CHUNK_SIZE + cubeX * BLOCK_LENGTH;
+        int y = start_y * 2 * World.WORLD_HEIGHT + cubeY * BLOCK_LENGTH;
+        int z = start_z * 2 * CHUNK_SIZE + cubeZ * BLOCK_LENGTH;
         
         float color[] = getCubeColor(cube);
         
@@ -585,5 +584,20 @@ public class Chunk {
                 break;
             }
         }
+    }
+    
+    public int get_x()
+    {
+        return start_x;
+    }
+    
+    public int get_y()
+    {
+        return start_y;
+    }
+    
+    public int get_z()
+    {
+        return start_z;
     }
 }

@@ -15,11 +15,6 @@ public class Minecraft {
         Minecraft app = new Minecraft();
         app.init();
         
-        // -1 -1
-        // -1  0
-        //  0 -1
-        //  0  0
-        
         BlockTexture.loadTextures();
 
         CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -15.0f, 0.0f);
@@ -69,9 +64,11 @@ public class Minecraft {
             glLoadIdentity();
             camera.lookThrough();
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             
             World.renderChunks();
+            World.checkChunks();
+;
             World.printCoor();
             
             Display.update();
