@@ -12,7 +12,7 @@ public class CameraController {
     
     public CameraController(float x, float y, float z)
     {
-        position = new Vector3f(-x, -y, z);
+        position = new Vector3f(x, y, z);
     }
     
     public void strafeLeft(float distance)
@@ -82,5 +82,13 @@ public class CameraController {
         World.updatePlayerPosition_x( pos_x_float >= 0 ? (int) Math.ceil( pos_x_float ) : (int) Math.floor( pos_x_float ) );
         World.updatePlayerPosition_z( pos_z_float >= 0 ? (int) Math.ceil( pos_z_float ) : (int) Math.floor( pos_z_float ) );
         
+    }
+    
+    public void printCameraCoords()
+    {
+        System.out.print("Position xyz ");
+        System.out.print(position.x + " ");
+        System.out.print(position.y + " ");
+        System.out.println(position.z);
     }
 }

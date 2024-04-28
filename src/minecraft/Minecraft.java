@@ -11,13 +11,18 @@ import org.lwjgl.util.glu.GLU;
 public class Minecraft {
 
     public static void main(String[] args) {
-        final int RADIUS = 3;
+        final int RADIUS = 1;
         Minecraft app = new Minecraft();
         app.init();
         
+        // -1 -1
+        // -1  0
+        //  0 -1
+        //  0  0
+        
         BlockTexture.loadTextures();
 
-        CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * 15.0f, 0.0f);
+        CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -15.0f, 0.0f);
         World.createChunks(RADIUS);
         
         float dt = 0;
@@ -64,11 +69,11 @@ public class Minecraft {
             glLoadIdentity();
             camera.lookThrough();
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             
             World.renderChunks();
-            
             World.printCoor();
+            
             Display.update();
             Display.sync(60);
         }

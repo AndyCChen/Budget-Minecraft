@@ -16,14 +16,14 @@ public class World {
     
     public static void updatePlayerPosition_x(int x)
     {
-        player_block_pos_x = x;
-        player_chunk_pos_x = player_block_pos_x >= 0 ? player_block_pos_x / Chunk.CHUNK_SIZE : (int) Math.floor( (float) player_block_pos_x / Chunk.CHUNK_SIZE );
+        player_block_pos_x = -x;
+        player_chunk_pos_x = (int) Math.floor( (float) player_block_pos_x / Chunk.CHUNK_SIZE );
     }
     
     public static void updatePlayerPosition_z(int z)
     {
-        player_block_pos_z = z;
-        player_chunk_pos_z = player_block_pos_z >= 0 ? player_block_pos_z / Chunk.CHUNK_SIZE : (int) Math.floor( (float) player_block_pos_z / Chunk.CHUNK_SIZE );
+        player_block_pos_z = -z;
+        player_chunk_pos_z = (int) Math.floor( (float) player_block_pos_z / Chunk.CHUNK_SIZE );
     }
     
     public static int getPlayerPosition_x()
@@ -69,5 +69,6 @@ public class World {
     {
         System.out.print("Block XZ: " + player_block_pos_x + " " + player_block_pos_z );
         System.out.println(" Chunk XZ: " + player_chunk_pos_x + " " + player_chunk_pos_z);
+        
     }
 }
