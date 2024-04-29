@@ -1,5 +1,7 @@
 package minecraft;
 
+import java.nio.FloatBuffer;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.Display;
 import org.lwjgl.opengl.DisplayMode;
 import org.lwjgl.input.Keyboard;
@@ -10,6 +12,9 @@ import org.lwjgl.util.glu.GLU;
 
 public class Minecraft {
 
+    private FloatBuffer lightPosition;
+    private FloatBuffer whiteLight;
+    
     public static void main(String[] args) {
         Minecraft app = new Minecraft();
         app.init();
@@ -67,7 +72,6 @@ public class Minecraft {
             
             World.renderChunks();
             World.checkChunks();
-;
             //World.printCoor();
             
             Display.update();
@@ -92,6 +96,13 @@ public class Minecraft {
             Display.create();
             Mouse.setGrabbed(true);
             
+            initLightArrays();
+            glLight(GL_LIGHT0, GL_POSITION, lightPosition);
+            glLight(GL_LIGHT0, GL_SPECULAR, whiteLight);
+            glLight(GL_LIGHT0, GL_DIFFUSE, whiteLight);
+            glLight(GL_LIGHT0, GL_AMBIENT, whiteLight);
+            
+            
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
@@ -104,6 +115,8 @@ public class Minecraft {
             glEnable(GL_TEXTURE_2D); //Texture
             glEnableClientState (GL_TEXTURE_COORD_ARRAY);
             glEnable(GL_CULL_FACE);
+            glEnable(GL_LIGHTING);
+            glEnable(GL_LIGHT0);
             //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             //glEnable(GL_BLEND);
         } 
@@ -113,5 +126,13 @@ public class Minecraft {
         }
                
         BlockTexture.loadTextures();
+    }
+    
+    private void initLightArrays(){
+        lightPosition = BufferUtils.createFloatBuffer(4);
+        lightPosition.put(0.0f).put(0.0f).put(0.0f).put(1.0f).flip();
+        
+        whiteLight = BufferUtils.createFloatBuffer(4);
+        whiteLight.put(1.0f).put(1.0f).put(1.0f).put(1.0f).flip();
     }
 }

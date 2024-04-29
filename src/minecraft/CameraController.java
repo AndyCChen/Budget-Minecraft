@@ -1,5 +1,7 @@
 package minecraft;
 
+import java.nio.FloatBuffer;
+import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL11.*;
 
 public class CameraController {
@@ -20,6 +22,11 @@ public class CameraController {
         
         position.x -= x_offset;
         position.z += z_offset;
+        
+        FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
+        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        glLight(GL_LIGHT0, GL_POSITION, lightPosition);
+        
         updatePlayerWorldPosition();
     }
     
@@ -30,6 +37,11 @@ public class CameraController {
         
         position.x -= x_offset;
         position.z += z_offset;
+        
+        FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
+        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        glLight(GL_LIGHT0, GL_POSITION, lightPosition);
+        
         updatePlayerWorldPosition();
     }
     
@@ -40,6 +52,11 @@ public class CameraController {
         
         position.x -= x_offset;
         position.z += z_offset;
+        
+        FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
+        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        glLight(GL_LIGHT0, GL_POSITION, lightPosition);
+        
         updatePlayerWorldPosition();
     }
     
@@ -50,6 +67,11 @@ public class CameraController {
         
         position.x += x_offset;
         position.z -= z_offset;
+        
+        
+        FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
+        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        glLight(GL_LIGHT0, GL_POSITION, lightPosition);
         updatePlayerWorldPosition();
     }
     
@@ -68,6 +90,9 @@ public class CameraController {
         glRotatef(pitch, 1.0f, 0.0f, 0.0f);
         glRotatef(yaw, 0.0f, 1.0f, 0.0f);
         glTranslatef(position.x, position.y, position.z);
+        FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
+        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        glLight(GL_LIGHT0, GL_POSITION, lightPosition);
     }
     
     private void updatePlayerWorldPosition()
