@@ -13,24 +13,22 @@ public class Block {
     }
     
     private BlockTextureType type;
-    private boolean isActive;
     
-    public Block(BlockTextureType type, int x, int y, int z){
-        this.type = type;
-        this.isActive = false;
-    }
-     
-    public boolean getBlockState()
-    {
-        return isActive;
+    public Block(int x, int y, int z){
+        this.type = BlockTextureType.Air;
     }
     
-    public void setBlockState(boolean isActive)
+    public boolean isBlockAir()
     {
-        this.isActive = isActive;
+        return this.type == BlockTextureType.Air;
     }
 
     public BlockTextureType getBlockType(){
         return type;
+    }
+    
+    public void setBlockType(BlockTextureType type)
+    {
+        this.type = type;
     }
 }

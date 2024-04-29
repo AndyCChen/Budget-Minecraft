@@ -11,20 +11,19 @@ import org.lwjgl.util.glu.GLU;
 public class Minecraft {
 
     public static void main(String[] args) {
-        final int RADIUS = 1;
         Minecraft app = new Minecraft();
         app.init();
         
-        BlockTexture.loadTextures();
-
-        CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -15.0f, 0.0f);
+        CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -20.0f, 0.0f);
+        
+        final int RADIUS = 4;
         World.createChunks(RADIUS);
         
         float dt = 0;
         long previous_time = 0;
         long current_time = 0;
         
-        float velocity = 15.0f;
+        float velocity = 50.0f;
         float mouse_sensitivity = 0.1f;
         
         while (!Display.isCloseRequested() && !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE))
@@ -69,7 +68,7 @@ public class Minecraft {
             World.renderChunks();
             World.checkChunks();
 ;
-            World.printCoor();
+            //World.printCoor();
             
             Display.update();
             Display.sync(60);
@@ -112,5 +111,7 @@ public class Minecraft {
         {
             e.printStackTrace();
         }
+               
+        BlockTexture.loadTextures();
     }
 }

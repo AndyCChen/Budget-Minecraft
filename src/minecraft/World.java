@@ -1,8 +1,11 @@
 package minecraft;
 
+import java.util.Random;
+
 // static class to track world state
 public class World {
-    public static final int WORLD_HEIGHT = 16;
+    public static final Random WORLD_SEED = new Random();
+    public static final int WORLD_HEIGHT = 48;
     
     private static int player_block_pos_x = 0;
     private static int player_block_pos_z = 0;

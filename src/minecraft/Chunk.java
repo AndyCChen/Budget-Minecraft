@@ -2,25 +2,22 @@ package minecraft;
 
 import java.util.ArrayList;
 import java.nio.FloatBuffer;
-import java.time.Year;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
-import java.util.Random;
 import minecraft.BlockTexture.BlockTextureType;
 import minecraft.Block.BlockFaces;
 
 public class Chunk {
-    final private static SimplexNoise noise = new SimplexNoise(128, 0.5, new Random().nextInt());
     public static final int CHUNK_SIZE = 16;
     public static final int BLOCK_LENGTH = 2;
     
     final private Block[][][] chunk_block;
     private int total_faces;
-    private int vertex_VBO;
-    private int color_VBO;
     private int start_x, start_y, start_z;
     
+    private int vertex_VBO;
+    private int color_VBO;
     private int VBOTextureHandle;
     
     public Chunk(int start_x, int start_y, int start_z)
@@ -29,6 +26,17 @@ public class Chunk {
         vertex_VBO = glGenBuffers();
         color_VBO = glGenBuffers();
         VBOTextureHandle = glGenBuffers();
+        
+        for (int x = 0; x < CHUNK_SIZE; ++x)
+        {
+            for (int y = 0; y < World.WORLD_HEIGHT; ++y)
+            {
+                for (int z = 0; z < CHUNK_SIZE; ++z)
+                {
+                    chunk_block[x][y][z] = new Block(x, y, z );
+                }
+            }
+        }
         
         this.start_x = start_x;
         this.start_y = start_y;
@@ -50,60 +58,21 @@ public class Chunk {
         glPopMatrix();
     }
     
-    public void rebuildMesh(int start_x, int start_y, int start_z)
+    public final void rebuildMesh(int start_x, int start_y, int start_z)
     {
         total_faces = 0;
         this.start_x = start_x;
         this.start_y = start_y;
         this.start_z = start_z;
         
-        vertex_VBO = glGenBuffers();
-        color_VBO = glGenBuffers();
-        
         FloatBuffer vertexPositionBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE * 6 * 12); // 12 floats for each face of a block or 3 floats per vertex
         FloatBuffer colorBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE * 6 * 12);
         FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE) * 6 * 8);
-        
-        Random r = new Random();
-        for (int x = 0; x < CHUNK_SIZE; ++x)
-        {
-            for (int y = 0; y < World.WORLD_HEIGHT; ++y)
-            {
-                for (int z = 0; z < CHUNK_SIZE; ++z)
-                {
-                    chunk_block[x][y][z] = new Block( generateBlockType(r.nextInt()), x, y, z );
-                }
-            }
-        }
-        
-        // Set noise scale and height factor
-        double heightFactor = World.WORLD_HEIGHT / 2;  // Controls the variation in height
 
-        // Calculate maximum height for each column based on noise
-        int[][] maxHeight = new int[CHUNK_SIZE][CHUNK_SIZE];
-        for (int x = 0; x < CHUNK_SIZE; ++x) {
-            for (int z = 0; z < CHUNK_SIZE; ++z) {
-                // Using getNoise to generate height
-                
-                int nx = start_x * CHUNK_SIZE + x;
-                int ny = start_z * CHUNK_SIZE + z;            
-                
-                double noiseValue = noise.getNoise(nx, ny);
-                int calculatedHeight = (int)(noiseValue * heightFactor + CHUNK_SIZE / 4);
-                maxHeight[x][z] = Math.max(1, Math.min(calculatedHeight, World.WORLD_HEIGHT - 1));  // Ensure height is within bounds
-            }
-        }
+        int[][] heightMap = new int[CHUNK_SIZE][CHUNK_SIZE];
         
-        for (int x = 0; x < CHUNK_SIZE; ++x)
-        {
-            for (int z = 0; z < CHUNK_SIZE; ++z)
-            {
-                for (int y = 0; y < maxHeight[x][z]; ++y)
-                {
-                    chunk_block[x][y][z].setBlockState(true);
-                }
-            }
-        }
+        WorldGeneration.generateTerrain(start_x, start_z, chunk_block, heightMap); // build the shape of the chunk with stone blocks with water placed starting a certain sea level
+        WorldGeneration.decorateTerrain(chunk_block, heightMap);
         
         // building mesh for entire chunk
         // only faces that are adjacent to inactive block will be rendered
@@ -111,41 +80,43 @@ public class Chunk {
         {
             for (int z = 0; z < CHUNK_SIZE; ++z)
             {
-                for (int y = 0; y < maxHeight[x][z]; ++y)
+                for (int y = 0; y < World.WORLD_HEIGHT; ++y)
                 {
                     ArrayList<Float> cubeMesh = new ArrayList<>();
                     ArrayList<Float> cubeTextureCoordinates = new ArrayList<>();
                     ArrayList<Float> cubeColor = new ArrayList<>();
                     
+                    if (chunk_block[x][y][z].isBlockAir()) continue;
+                    
                     // check back neighbor
-                    if ( z == 0 || !chunk_block[x][y][z - 1].getBlockState() )
+                    if ( z == 0 || chunk_block[x][y][z - 1].isBlockAir() )
                     {
                         addCubeFace(BlockFaces.Back, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     // check front neighbor
-                    if ( z + 1 == CHUNK_SIZE || !chunk_block[x][y][z + 1].getBlockState() )
+                    if ( z + 1 == CHUNK_SIZE || chunk_block[x][y][z + 1].isBlockAir() )
                     {
                         addCubeFace(BlockFaces.Front, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     
                     // check left neighbor
-                    if ( x == 0 || !chunk_block[x-1][y][z].getBlockState() )
+                    if ( x == 0 || chunk_block[x-1][y][z].isBlockAir() )
                     {
                         addCubeFace(BlockFaces.Left, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     // check right neighbor
-                    if ( x + 1 == CHUNK_SIZE || !chunk_block[x+1][y][z].getBlockState() )
+                    if ( x + 1 == CHUNK_SIZE || chunk_block[x+1][y][z].isBlockAir() )
                     {
                         addCubeFace(BlockFaces.Right, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     
                     // check bottom neighbor
-                    if ( y == 0 || !chunk_block[x][y - 1][z].getBlockState() )
+                    if ( y > 0 && chunk_block[x][y - 1][z].isBlockAir() )
                     {
                         addCubeFace(BlockFaces.Bottom, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }
                     // check top neightbor
-                    if ( y + 1 < World.WORLD_HEIGHT && !chunk_block[x][y + 1][z].getBlockState() )
+                    if ( y + 1 == World.WORLD_HEIGHT || chunk_block[x][y + 1][z].isBlockAir() )
                     {
                         addCubeFace(BlockFaces.Top, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                     }

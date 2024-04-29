@@ -8,6 +8,7 @@ import static org.lwjgl.opengl.GL11.*;
 
 public final class BlockTexture {
      public enum BlockTextureType {
+        Air,
         Grass,
         Sand,
         Water,
