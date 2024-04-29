@@ -5,12 +5,14 @@ import static minecraft.Chunk.CHUNK_SIZE;
 import minecraft.BlockTexture.BlockTextureType;
 
 public class WorldGeneration {
-    private static final int SEA_LEVEL = 10;
+    private static final int SEA_LEVEL = 12;
     
-    private static final double [] ampl = new double[] {1, 0.5, 0.25};
-    private static final double [] freq = new double[] {0.009, 0.018, 0.036};
+    private static final double [] ampl = new double[] {2, 1, 0.5, 0.25, 0.13};
+    private static final double [] freq = new double[] {0.009, 0.018, 0.036, 0.072, 0.144};
     
     private static final SimplexNoise_octave octaves[] = new SimplexNoise_octave[] {
+        new SimplexNoise_octave( World.WORLD_SEED.nextInt() ),
+        new SimplexNoise_octave( World.WORLD_SEED.nextInt() ),
         new SimplexNoise_octave( World.WORLD_SEED.nextInt() ),
         new SimplexNoise_octave( World.WORLD_SEED.nextInt() ),
         new SimplexNoise_octave( World.WORLD_SEED.nextInt() ),
@@ -37,11 +39,11 @@ public class WorldGeneration {
                     amplSum += ampl[i];
                 }
                 noiseValue /= amplSum;
-                noiseValue = Math.pow(noiseValue, 1.8);
+                noiseValue = Math.pow(noiseValue, 2.5);
                 
                 heightMap[x][z] = (int) Math.round(noiseValue * (World.WORLD_HEIGHT - 1) + 5);
                 if (heightMap[x][z] == 0) heightMap[x][z] = 1;
-                else if (heightMap[x][z] > World.WORLD_HEIGHT) heightMap[x][z] -= 1;
+                else if (heightMap[x][z] > World.WORLD_HEIGHT) heightMap[x][z] = World.WORLD_HEIGHT;
                 
                 for (int y = 0; y < World.WORLD_HEIGHT; ++y)
                 {
