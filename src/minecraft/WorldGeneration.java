@@ -1,11 +1,10 @@
 package minecraft;
 
-import java.util.Random;
 import static minecraft.Chunk.CHUNK_SIZE;
 import minecraft.BlockTexture.BlockTextureType;
 
 public class WorldGeneration {
-    private static final int SEA_LEVEL = 12;
+    private static final int SEA_LEVEL = 18;
     
     //private static final double [] ampl = new double[] {2, 1, 0.5, 0.25, 0.13};
     //private static final double [] freq = new double[] {0.001, 0.04, 0.05, 0.06, 0.07};
@@ -45,13 +44,11 @@ public class WorldGeneration {
                 }
                 
                 noiseValue = noiseValue / 2.0 + 0.5;
-                noiseValue = Math.pow(noiseValue, 1.48);
+                noiseValue = Math.pow(Math.abs(noiseValue), 1.48);
                 
-                
-                heightMap[x][z] = (int) Math.round(noiseValue * (World.WORLD_HEIGHT - 1) + 5);
+                heightMap[x][z] = (int) Math.round( 7 + (noiseValue * 30) );
                 if (heightMap[x][z] <= 0) heightMap[x][z] = 1;
                 else if (heightMap[x][z] > World.WORLD_HEIGHT) heightMap[x][z] = World.WORLD_HEIGHT;
-                
                 for (int y = 0; y < World.WORLD_HEIGHT; ++y)
                 {
                     if (y < heightMap[x][z])
@@ -88,7 +85,7 @@ public class WorldGeneration {
                 double d = 5 * dirtNoise.noise(0.01 * x, 0.01 * z) / 2.0 + 0.5;
                 int dirtVariation = (int) Math.round(d + 3);
                 
-                double s = 3 * sandNoise.noise(0.02 * x, 0.02 * z) / 2.0 + 0.5;
+                double s = sandNoise.noise(0.008 * x, 0.008 * z) / 2.0 + 0.5;
                 int sandVariation = (int) Math.round(s + 2);
                 
                 for (int i = 0; i <= sandVariation; ++i)
@@ -101,7 +98,7 @@ public class WorldGeneration {
                 
                 for (int i = 0; i <= dirtVariation; ++i)
                 {
-                    if (surface_y - 2 - i >= 0 && chunk_block[x][surface_y - 2 - i][z].getBlockType() != BlockTextureType.Sand)
+                    if (surface_y - 2 - i >= 0 )
                         chunk_block[x][surface_y - 2 - i][z].setBlockType(BlockTextureType.Dirt);
                 }
                 
