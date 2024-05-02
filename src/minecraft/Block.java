@@ -18,9 +18,14 @@ public class Block {
         this.type = BlockTextureType.Air;
     }
     
-    public boolean isBlockAir()
+    public boolean isAir()
     {
         return this.type == BlockTextureType.Air;
+    }
+    
+    public boolean isTransparent()
+    {
+        return this.type == BlockTextureType.Water;
     }
 
     public BlockTextureType getBlockType(){

@@ -21,14 +21,14 @@ public class Minecraft {
         
         CameraController camera = new CameraController(0.0f, Chunk.BLOCK_LENGTH * -20.0f, 0.0f);
         
-        final int RADIUS = 4;
+        final int RADIUS = 5;
         World.createChunks(RADIUS);
         
         float dt = 0;
         long previous_time = 0;
         long current_time = 0;
         
-        float velocity = 50.0f;
+        float velocity = 75.0f;
         float mouse_sensitivity = 0.1f;
         
         while (!Display.isCloseRequested() && !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE))
@@ -117,8 +117,9 @@ public class Minecraft {
             glEnable(GL_CULL_FACE);
             glEnable(GL_LIGHTING);
             glEnable(GL_LIGHT0);
-            //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            //glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND);
+
         } 
         catch (Exception e)
         {

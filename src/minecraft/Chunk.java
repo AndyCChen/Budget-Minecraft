@@ -7,25 +7,36 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import minecraft.BlockTexture.BlockTextureType;
 import minecraft.Block.BlockFaces;
+import minecraft.BlockTexture.BlockAlphaType;
 
 public class Chunk {
     public static final int CHUNK_SIZE = 16;
     public static final int BLOCK_LENGTH = 2;
     
     final private Block[][][] chunk_block;
-    private int total_faces;
+    private int total_opaque_faces;
+    private int total_transparent_faces;
     private int start_x, start_y, start_z;
     
     private int vertex_VBO;
     private int color_VBO;
     private int VBOTextureHandle;
     
+    private int transparent_vertex_VBO;
+    private int transparent_color_VBO;
+    private int transparent_VBOTextureHandle;
+    
     public Chunk(int start_x, int start_y, int start_z)
     {
         chunk_block = new Block[CHUNK_SIZE][World.WORLD_HEIGHT][CHUNK_SIZE];
+        
         vertex_VBO = glGenBuffers();
         color_VBO = glGenBuffers();
         VBOTextureHandle = glGenBuffers();
+        
+        transparent_vertex_VBO = glGenBuffers();
+        transparent_color_VBO = glGenBuffers();
+        transparent_VBOTextureHandle = glGenBuffers();
         
         for (int x = 0; x < CHUNK_SIZE; ++x)
         {
@@ -44,35 +55,54 @@ public class Chunk {
         rebuildMesh(start_x, start_y, start_z);
     }
     
-    public void render()
+    public void renderOpaqueBlocks()
     {   
-        glPushMatrix();
+        glPushMatrix(); 
             glBindBuffer(GL_ARRAY_BUFFER, VBOTextureHandle);
-            glBindTexture(GL_TEXTURE_2D, BlockTexture.getTexture().getTextureID());
+            glBindTexture(GL_TEXTURE_2D, BlockTexture.getTextureID());
             glTexCoordPointer(2,GL_FLOAT,0,0L);
             glBindBuffer(GL_ARRAY_BUFFER, vertex_VBO);
             glVertexPointer(3, GL_FLOAT, 0, 0L);
             glBindBuffer(GL_ARRAY_BUFFER, color_VBO);
             glColorPointer(3, GL_FLOAT, 0, 0L);
-            glDrawArrays(GL_QUADS, 0, total_faces * 4); // total blocks * number of vertices per block
+            glDrawArrays(GL_QUADS, 0, total_opaque_faces * 4); // total blocks * number of vertices per bloc
+        glPopMatrix();
+    }
+    
+    public void renderTransparentBlocks()
+    {
+        glPushMatrix();
+            glBindBuffer(GL_ARRAY_BUFFER, transparent_VBOTextureHandle);
+            glBindTexture(GL_TEXTURE_2D, BlockTexture.getTextureID());
+            glTexCoordPointer(2,GL_FLOAT,0,0L);
+            glBindBuffer(GL_ARRAY_BUFFER, transparent_vertex_VBO);
+            glVertexPointer(3, GL_FLOAT, 0, 0L);
+            glBindBuffer(GL_ARRAY_BUFFER, transparent_color_VBO);
+            glColorPointer(3, GL_FLOAT, 0, 0L);
+            glDrawArrays(GL_QUADS, 0, total_transparent_faces * 4);
         glPopMatrix();
     }
     
     public final void rebuildMesh(int start_x, int start_y, int start_z)
     {
-        total_faces = 0;
+        total_opaque_faces = 0;
+        total_transparent_faces = 0;
         this.start_x = start_x;
         this.start_y = start_y;
         this.start_z = start_z;
-        
-        FloatBuffer vertexPositionBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE * 6 * 12); // 12 floats for each face of a block or 3 floats per vertex
-        FloatBuffer colorBuffer = BufferUtils.createFloatBuffer(CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE * 6 * 12);
-        FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer((CHUNK_SIZE * World.WORLD_HEIGHT * CHUNK_SIZE) * 6 * 8);
 
         int[][] heightMap = new int[CHUNK_SIZE][CHUNK_SIZE];
         
         WorldGeneration.generateTerrain(start_x, start_z, chunk_block, heightMap); // build the shape of the chunk with stone blocks with water placed starting a certain sea level
         WorldGeneration.decorateTerrain(chunk_block, heightMap);
+        
+        ArrayList<Float> transparentCubeMesh = new ArrayList<>();
+        ArrayList<Float> transparentCubeTextureCoordinates = new ArrayList<>();
+        ArrayList<Float> transparentCubeColor = new ArrayList<>();
+        
+        ArrayList<Float> cubeMesh = new ArrayList<>();
+        ArrayList<Float> cubeTextureCoordinates = new ArrayList<>();
+        ArrayList<Float> cubeColor = new ArrayList<>();
         
         // building mesh for entire chunk
         // only faces that are adjacent to inactive block will be rendered
@@ -82,60 +112,101 @@ public class Chunk {
             {
                 for (int y = 0; y < World.WORLD_HEIGHT; ++y)
                 {
-                    ArrayList<Float> cubeMesh = new ArrayList<>();
-                    ArrayList<Float> cubeTextureCoordinates = new ArrayList<>();
-                    ArrayList<Float> cubeColor = new ArrayList<>();
+                    if (chunk_block[x][y][z].isAir()) continue;
+
+                    if (chunk_block[x][y][z].isTransparent())
+                    {
+                        // check back neighbor
+                        if ( z > 0 && chunk_block[x][y][z - 1].isAir() )
+                        {
+                            addCubeFace(BlockAlphaType.Transparent, BlockFaces.Back, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+                        // check front neighbor
+                        if ( z + 1 < CHUNK_SIZE && chunk_block[x][y][z + 1].isAir() )
+                        {
+                            addCubeFace(BlockAlphaType.Transparent, BlockFaces.Front, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+
+                        // check left neighbor
+                        if ( x > 0 && chunk_block[x-1][y][z].isAir() )
+                        {
+                            addCubeFace(BlockAlphaType.Transparent, BlockFaces.Left, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+                        // check right neighbor
+                        if ( x + 1 < CHUNK_SIZE && chunk_block[x+1][y][z].isAir() )
+                        {
+                            addCubeFace(BlockAlphaType.Transparent, BlockFaces.Right, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+
+                        // check bottom neighbor
+                        if ( y > 0 && chunk_block[x][y - 1][z].isAir() )
+                        {
+                            addCubeFace(BlockAlphaType.Transparent, BlockFaces.Bottom, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+                        // check top neightbor
+                        if ( y + 1 == World.WORLD_HEIGHT || chunk_block[x][y + 1][z].isAir() )
+                        {
+                            addCubeFace(BlockAlphaType.Transparent, BlockFaces.Top, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+                    }
+                    else
+                    {
+                        // check back neighbor
+                        if ( z == 0 || chunk_block[x][y][z - 1].isAir() || chunk_block[x][y][z - 1].isTransparent()  )
+                        {
+                            addCubeFace(BlockAlphaType.Opaque, BlockFaces.Back, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+                        // check front neighbor
+                        if ( z + 1 == CHUNK_SIZE || chunk_block[x][y][z + 1].isAir()|| chunk_block[x][y][z + 1].isTransparent()  )
+                        {
+                            addCubeFace(BlockAlphaType.Opaque, BlockFaces.Front, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+
+                        // check left neighbor
+                        if ( x == 0 || chunk_block[x-1][y][z].isAir()|| chunk_block[x-1][y][z].isTransparent() )
+                        {
+                            addCubeFace(BlockAlphaType.Opaque, BlockFaces.Left, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+                        // check right neighbor
+                        if ( x + 1 == CHUNK_SIZE || chunk_block[x+1][y][z].isAir()|| chunk_block[x+1][y][z].isTransparent() )
+                        {
+                            addCubeFace(BlockAlphaType.Opaque, BlockFaces.Right, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+
+                        // check bottom neighbor
+                        if ( y > 0 && (chunk_block[x][y - 1][z].isAir() || chunk_block[x][y - 1][z].isTransparent()) )
+                        {
+                            addCubeFace(BlockAlphaType.Opaque, BlockFaces.Bottom, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+                        // check top neightbor
+                        if ( y + 1 == World.WORLD_HEIGHT || chunk_block[x][y + 1][z].isAir()|| chunk_block[x][y + 1][z].isTransparent() )
+                        {
+                            addCubeFace(BlockAlphaType.Opaque, BlockFaces.Top, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
+                        }
+                    }
                     
-                    if (chunk_block[x][y][z].isBlockAir()) continue;
                     
-                    // check back neighbor
-                    if ( z == 0 || chunk_block[x][y][z - 1].isBlockAir() )
-                    {
-                        addCubeFace(BlockFaces.Back, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
-                    }
-                    // check front neighbor
-                    if ( z + 1 == CHUNK_SIZE || chunk_block[x][y][z + 1].isBlockAir() )
-                    {
-                        addCubeFace(BlockFaces.Front, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
-                    }
-                    
-                    // check left neighbor
-                    if ( x == 0 || chunk_block[x-1][y][z].isBlockAir() )
-                    {
-                        addCubeFace(BlockFaces.Left, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
-                    }
-                    // check right neighbor
-                    if ( x + 1 == CHUNK_SIZE || chunk_block[x+1][y][z].isBlockAir() )
-                    {
-                        addCubeFace(BlockFaces.Right, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
-                    }
-                    
-                    // check bottom neighbor
-                    if ( y > 0 && chunk_block[x][y - 1][z].isBlockAir() )
-                    {
-                        addCubeFace(BlockFaces.Bottom, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
-                    }
-                    // check top neightbor
-                    if ( y + 1 == World.WORLD_HEIGHT || chunk_block[x][y + 1][z].isBlockAir() )
-                    {
-                        addCubeFace(BlockFaces.Top, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
-                    }
-                    
-                    for (int i = 0; i < cubeMesh.size(); ++i) 
-                    {
-                        vertexPositionBuffer.put( cubeMesh.get(i) );
-                    }
-                    for (int i = 0; i < cubeTextureCoordinates.size(); ++i) 
-                    {
-                        VertexTextureData.put( cubeTextureCoordinates.get(i) );
-                    }
-                    for (int i = 0; i < cubeColor.size(); ++i) 
-                    {
-                        colorBuffer.put( cubeColor.get(i) );
-                    }
                 }
             }
         } 
+        
+        // buffers for opaque blocks
+        
+        FloatBuffer vertexPositionBuffer = BufferUtils.createFloatBuffer(total_opaque_faces * 12); // 12 floats for each face of a block or 3 floats per vertex
+        FloatBuffer colorBuffer = BufferUtils.createFloatBuffer(total_opaque_faces * 16);
+        FloatBuffer VertexTextureData = BufferUtils.createFloatBuffer(total_opaque_faces * 8);
+        for (int i = 0; i < cubeMesh.size(); ++i) 
+        {
+            vertexPositionBuffer.put( cubeMesh.get(i) );
+        }
+        for (int i = 0; i < cubeTextureCoordinates.size(); ++i) 
+        {
+            VertexTextureData.put( cubeTextureCoordinates.get(i) );
+        }
+        for (int i = 0; i < cubeColor.size(); ++i) 
+        {
+            colorBuffer.put( cubeColor.get(i) );
+        }
         
         vertexPositionBuffer.flip();
         colorBuffer.flip();
@@ -148,12 +219,45 @@ public class Chunk {
         glBindBuffer(GL_ARRAY_BUFFER, VBOTextureHandle);
         glBufferData(GL_ARRAY_BUFFER, VertexTextureData,GL_STATIC_DRAW);
         
+        // buffers for transparent blocks like water, glass, leaves
+        
+        FloatBuffer transparentVertexPositionBuffer = BufferUtils.createFloatBuffer(total_transparent_faces * 12); // 12 floats for each face of a block or 3 floats per vertex
+        FloatBuffer transparentColorBuffer = BufferUtils.createFloatBuffer(total_transparent_faces * 16);
+        FloatBuffer transparentVertexTextureData = BufferUtils.createFloatBuffer(total_transparent_faces * 8);
+        for (int i = 0; i < transparentCubeMesh.size(); ++i) 
+        {
+            transparentVertexPositionBuffer.put( transparentCubeMesh.get(i) );
+        }
+        for (int i = 0; i < transparentCubeTextureCoordinates.size(); ++i) 
+        {
+            transparentVertexTextureData.put( transparentCubeTextureCoordinates.get(i) );
+        }
+        for (int i = 0; i < transparentCubeColor.size(); ++i) 
+        {
+            transparentColorBuffer.put( transparentCubeColor.get(i) );
+        }
+        
+        transparentVertexPositionBuffer.flip();
+        transparentColorBuffer.flip();
+        transparentVertexTextureData.flip();
+        
+        glBindBuffer(GL_ARRAY_BUFFER, transparent_vertex_VBO);
+        glBufferData(GL_ARRAY_BUFFER, transparentVertexPositionBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, transparent_color_VBO);
+        glBufferData(GL_ARRAY_BUFFER, transparentColorBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, transparent_VBOTextureHandle);
+        glBufferData(GL_ARRAY_BUFFER, transparentVertexTextureData,GL_STATIC_DRAW);
+        
         glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind buffer
     }
     
-    private void addCubeFace(BlockFaces face, ArrayList cubeMesh, ArrayList textureCord, ArrayList cubeColors, Block cube, int cubeX, int cubeY, int cubeZ)  
+    private void addCubeFace(BlockAlphaType alpha, BlockFaces face, ArrayList cubeMesh, ArrayList textureCord, ArrayList cubeColors, Block cube, int cubeX, int cubeY, int cubeZ)  
     {
-        total_faces += 1;
+        if (alpha == BlockAlphaType.Opaque) total_opaque_faces += 1;
+        else                                total_transparent_faces += 1;
+        
+
+        total_opaque_faces += 1;
         int x = start_x * 2 * CHUNK_SIZE + cubeX * BLOCK_LENGTH;
         int y = start_y * 2 * World.WORLD_HEIGHT + cubeY * BLOCK_LENGTH;
         int z = start_z * 2 * CHUNK_SIZE + cubeZ * BLOCK_LENGTH;
@@ -204,7 +308,7 @@ public class Chunk {
 
     private float[] getCubeColor(Block block) 
     {
-        return new float[] { 0.7f, 0.7f, 0.7f };
+        return new float[] { 1.0f, 1.0f, 1.0f, 1.0f };
     }
     
     private void createCubeMeshFace(float x, float y, float z, BlockFaces face, ArrayList<Float> cubeMesh)

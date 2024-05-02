@@ -74,11 +74,25 @@ public class World {
     
     public static void renderChunks()
     {
+        /**
+         * in order for the transparent blocks to be rendered properly
+         * first draw all opaque blocks and then draw transparent blocks on
+         * the second pass
+         */
+        
         for (int i = 0; i < world_dimension; ++i)
         {
             for (int j = 0; j < world_dimension; ++j)
             {
-                chunk_list[i][j].render();
+                chunk_list[i][j].renderOpaqueBlocks();
+            }
+        }
+        
+        for (int i = 0; i < world_dimension; ++i)
+        {
+            for (int j = 0; j < world_dimension; ++j)
+            {
+                chunk_list[i][j].renderTransparentBlocks();
             }
         }
     }
