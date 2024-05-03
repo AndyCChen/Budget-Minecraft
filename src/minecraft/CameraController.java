@@ -6,13 +6,15 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class CameraController {
     private final Vector3f position;
+    private final Vector3f lightCamera;
     
     public float pitch = 0.0f; // rotation around x axis
     public float yaw = 0.0f;   // rotation around y axis
-    
     public CameraController(float x, float y, float z)
     {
         position = new Vector3f(x, y, z);
+        lightCamera = new Vector3f(x, y, z);
+        
     }
     
     public void strafeLeft(float distance)
@@ -23,8 +25,11 @@ public class CameraController {
         position.x -= x_offset;
         position.z += z_offset;
         
+        
+        lightCamera.x += x_offset;
+        lightCamera.z -= z_offset;
         FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
-        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        lightPosition.put(lightCamera.x).put(position.y).put(lightCamera.z).put(1.0f).flip();
         glLight(GL_LIGHT0, GL_POSITION, lightPosition);
         
         updatePlayerWorldPosition();
@@ -38,8 +43,10 @@ public class CameraController {
         position.x -= x_offset;
         position.z += z_offset;
         
+        lightCamera.x += x_offset;
+        lightCamera.z -= z_offset;
         FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
-        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        lightPosition.put(lightCamera.x).put(position.y).put(lightCamera.z).put(1.0f).flip();
         glLight(GL_LIGHT0, GL_POSITION, lightPosition);
         
         updatePlayerWorldPosition();
@@ -53,8 +60,10 @@ public class CameraController {
         position.x -= x_offset;
         position.z += z_offset;
         
+        lightCamera.x += x_offset;
+        lightCamera.z -= z_offset;
         FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
-        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        lightPosition.put(lightCamera.x).put(position.y).put(lightCamera.z).put(1.0f).flip();
         glLight(GL_LIGHT0, GL_POSITION, lightPosition);
         
         updatePlayerWorldPosition();
@@ -69,8 +78,10 @@ public class CameraController {
         position.z -= z_offset;
         
         
+        lightCamera.x -= x_offset;
+        lightCamera.z += z_offset;
         FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
-        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        lightPosition.put(lightCamera.x).put(position.y).put(lightCamera.z).put(1.0f).flip();
         glLight(GL_LIGHT0, GL_POSITION, lightPosition);
         updatePlayerWorldPosition();
     }
@@ -90,8 +101,9 @@ public class CameraController {
         glRotatef(pitch, 1.0f, 0.0f, 0.0f);
         glRotatef(yaw, 0.0f, 1.0f, 0.0f);
         glTranslatef(position.x, position.y, position.z);
+
         FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
-        lightPosition.put(position.x).put(position.y).put(position.z).put(1.0f).flip();
+        lightPosition.put(lightCamera.x).put(100).put(lightCamera.z+500).put(1.0f).flip();
         glLight(GL_LIGHT0, GL_POSITION, lightPosition);
     }
     

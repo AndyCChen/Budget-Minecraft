@@ -11,9 +11,9 @@ import org.lwjgl.Sys;
 import org.lwjgl.util.glu.GLU;
 
 public class Minecraft {
-
-    private FloatBuffer lightPosition;
-    private FloatBuffer whiteLight;
+    
+    
+    private static float timeOfDay = 0;
     
     public static void main(String[] args) {
         Minecraft app = new Minecraft();
@@ -37,6 +37,9 @@ public class Minecraft {
             dt = (float) (current_time - previous_time) / Sys.getTimerResolution();
             previous_time = current_time;
             
+            initLight();
+            updateDayNightCycle();
+
             camera.yaw += Mouse.getDX()* mouse_sensitivity;
             camera.pitch -= Mouse.getDY() * mouse_sensitivity;
             
@@ -96,13 +99,6 @@ public class Minecraft {
             Display.create();
             Mouse.setGrabbed(true);
             
-            initLightArrays();
-            glLight(GL_LIGHT0, GL_POSITION, lightPosition);
-            glLight(GL_LIGHT0, GL_SPECULAR, whiteLight);
-            glLight(GL_LIGHT0, GL_DIFFUSE, whiteLight);
-            glLight(GL_LIGHT0, GL_AMBIENT, whiteLight);
-            
-            
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glMatrixMode(GL_PROJECTION);
             glLoadIdentity();
@@ -115,10 +111,12 @@ public class Minecraft {
             glEnable(GL_TEXTURE_2D); //Texture
             glEnableClientState (GL_TEXTURE_COORD_ARRAY);
             glEnable(GL_CULL_FACE);
+            glEnable(GL_NORMALIZE);
             glEnable(GL_LIGHTING);
             glEnable(GL_LIGHT0);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glEnable(GL_BLEND);
+            
 
         } 
         catch (Exception e)
@@ -128,12 +126,34 @@ public class Minecraft {
                
         BlockTexture.loadTextures();
     }
-    
-    private void initLightArrays(){
-        lightPosition = BufferUtils.createFloatBuffer(4);
-        lightPosition.put(0.0f).put(0.0f).put(0.0f).put(1.0f).flip();
-        
-        whiteLight = BufferUtils.createFloatBuffer(4);
-        whiteLight.put(1.0f).put(1.0f).put(1.0f).put(1.0f).flip();
+     
+    private static float calculateDaylightIntensity() {
+        // Example: brighter during the day, darker at night
+        return Math.max(0.2f, Math.min(1.0f, 1.0f - Math.abs(timeOfDay - 0.5f) * 2.0f));
+    }
+    private static void updateDayNightCycle() {
+        // Simulate time passing (you can adjust this based on your game's speed)
+        timeOfDay += 0.001f;
+        if (timeOfDay >= 1.0f) {
+            timeOfDay = 0; // Reset time of day to start a new day
+        }
+    }
+    private static void initLight(){
+        // Set ambient light
+        float ambient[] = {0.1f, 0.1f, 0.1f, 1.0f};
+        FloatBuffer ambientBuffer = BufferUtils.createFloatBuffer(4);
+        ambientBuffer.put(ambient).flip();
+        glLightModel(GL_LIGHT_MODEL_AMBIENT, ambientBuffer);
+        // Set directional light
+        float lightPosition[] = {0.0f, 0.0f, 0.0f, 1.0f}; 
+        FloatBuffer lightPositionBuffer = BufferUtils.createFloatBuffer(4);
+        lightPositionBuffer.put(lightPosition).flip();
+        glLight(GL_LIGHT0, GL_POSITION, lightPositionBuffer);
+
+        float daylightIntensity = calculateDaylightIntensity();
+        float diffuse[] = {daylightIntensity, daylightIntensity, daylightIntensity, 1.0f};
+        FloatBuffer diffuseBuffer = BufferUtils.createFloatBuffer(4);
+        diffuseBuffer.put(diffuse).flip();
+        glLight(GL_LIGHT0, GL_DIFFUSE, diffuseBuffer);
     }
 }
