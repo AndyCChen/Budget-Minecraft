@@ -19,9 +19,9 @@ public class WorldGeneration {
         //new SimplexNoise_octave( World.WORLD_SEED.nextInt() ),
     };
     
-    private static SimplexNoise_octave dirtNoise = new SimplexNoise_octave( World.WORLD_SEED.nextInt() );
-    private static SimplexNoise_octave sandNoise = new SimplexNoise_octave( World.WORLD_SEED.nextInt() );
-    private static SimplexNoise_octave BedRockNoise = new SimplexNoise_octave( World.WORLD_SEED.nextInt() );
+    final private static SimplexNoise_octave dirtNoise = new SimplexNoise_octave( World.WORLD_SEED.nextInt() );
+    final private static SimplexNoise_octave sandNoise = new SimplexNoise_octave( World.WORLD_SEED.nextInt() );
+    final private static SimplexNoise_octave BedRockNoise = new SimplexNoise_octave( World.WORLD_SEED.nextInt() );
     
     private WorldGeneration(){} // private contructor because this is a static class
     
@@ -103,14 +103,14 @@ public class WorldGeneration {
                 {
                     if (surface_y - i > 0 && surface_y <= WorldGeneration.SEA_LEVEL + sandVariation)
                     {
-                        chunk_block[x][surface_y - i][z].setBlockType(BlockTextureType.Sand);
+                        chunk_block[x][surface_y - i + 1][z].setBlockType(BlockTextureType.Sand);
                     }
                 }
                 
                 for (int i = 0; i <= dirtVariation; ++i)
                 {
                     if (surface_y - 2 - i >= 0 )
-                        chunk_block[x][surface_y - 2 - i][z].setBlockType(BlockTextureType.Dirt);
+                        chunk_block[x][surface_y - 1 - i][z].setBlockType(BlockTextureType.Dirt);
                 }
                 
                 double b = 2 *  BedRockNoise.noise(0.8 * x, 0.8 * z) / 2.0 + 0.5;
