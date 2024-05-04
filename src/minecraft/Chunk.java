@@ -112,7 +112,33 @@ public class Chunk {
             {
                 for (int y = 0; y < World.WORLD_HEIGHT; ++y)
                 {
+                    Block currentBlock = chunk_block[x][y][z];
                     if (chunk_block[x][y][z].isAir()) continue;
+                    
+                    Block[] neighbors = {
+                        getAdjacentBlock(x, y, z, BlockFaces.Back),
+                        getAdjacentBlock(x, y, z, BlockFaces.Front),
+                        getAdjacentBlock(x, y, z, BlockFaces.Left),
+                        getAdjacentBlock(x, y, z, BlockFaces.Right),
+                        getAdjacentBlock(x, y, z, BlockFaces.Bottom),
+                        getAdjacentBlock(x, y, z, BlockFaces.Top),
+                        };
+                    
+                    BlockFaces[] faces = BlockFaces.values();
+                    // Prevents face rendering if neighboring block is also a leaf to prevent hollow appearance 
+                    for (int i = 0; i < faces.length; i++) {
+                        if (neighbors[i] == null || neighbors[i].isAir() || 
+                               (currentBlock.getBlockType() == BlockTextureType.Leaf && neighbors[i].getBlockType() == BlockTextureType.Leaf)) {
+                            continue; //skips face rendering if its between two leaf blocks
+                        }
+                            ArrayList<Float> targetMesh = currentBlock.isTransparent() ? transparentCubeMesh : cubeMesh;
+                            ArrayList<Float> targetTextureCoords = currentBlock.isTransparent() ? transparentCubeTextureCoordinates : cubeTextureCoordinates;
+                            ArrayList<Float> targetColor = currentBlock.isTransparent() ? transparentCubeColor : cubeColor;
+                            addCubeFace(currentBlock.isTransparent() ? BlockAlphaType.Transparent : BlockAlphaType.Opaque, 
+                                    faces[i], targetMesh, targetTextureCoords, targetColor, currentBlock, x, y, z);
+                        
+                    }
+                        
 
                     if (chunk_block[x][y][z].isTransparent())
                     {
@@ -249,6 +275,18 @@ public class Chunk {
         glBufferData(GL_ARRAY_BUFFER, transparentVertexTextureData,GL_STATIC_DRAW);
         
         glBindBuffer(GL_ARRAY_BUFFER, 0); // unbind buffer
+    }
+    
+    private Block getAdjacentBlock(int x, int y, int z, BlockFaces face) {
+        switch (face) {
+        case Back: return z > 0 ? chunk_block[x][y][z - 1] : null;
+        case Front: return z < CHUNK_SIZE - 1 ? chunk_block[x][y][z + 1] : null;
+        case Left: return x > 0 ? chunk_block[x - 1][y][z] : null;
+        case Right: return x < CHUNK_SIZE - 1 ? chunk_block[x + 1][y][z] : null;
+        case Bottom: return y > 0 ? chunk_block[x][y - 1][z] : null;
+        case Top: return y < World.WORLD_HEIGHT - 1 ? chunk_block[x][y + 1][z] : null;
+        default: return null;
+        }
     }
     
     private void addCubeFace(BlockAlphaType alpha, BlockFaces face, ArrayList cubeMesh, ArrayList textureCord, ArrayList cubeColors, Block cube, int cubeX, int cubeY, int cubeZ)  
@@ -620,6 +658,85 @@ public class Chunk {
                     x + offset_x*26, y + offset_y*2,
                     x + offset_x*26, y + offset_y*3,
                     x + offset_x*25, y + offset_y*3,
+                };
+                break;
+            case Wood:
+                coordinates = new float[] {
+                    // BACK QUAD
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 25,
+                    x + offset_x * 4, y + offset_y * 25,
+                    x + offset_x * 4, y + offset_y * 24,
+
+                    // FRONT QUAD
+                    x + offset_x * 4, y + offset_y * 25,
+                    x + offset_x * 4, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 25,
+
+                    // LEFT QUAD
+                    x + offset_x * 4, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 25,
+                    x + offset_x * 4, y + offset_y * 25,
+
+                    // RIGHT QUAD
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 4, y + offset_y * 24,
+                    x + offset_x * 4, y + offset_y * 25,
+                    x + offset_x * 3, y + offset_y * 25,
+
+                    // BOTTOM QUAD
+                    x + offset_x * 3, y + offset_y * 25,
+                    x + offset_x * 4, y + offset_y * 25,
+                    x + offset_x * 4, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 24,
+
+                    // TOP QUAD
+                    x + offset_x * 4, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 25,
+                    x + offset_x * 4, y + offset_y * 25,
+                        
+                };
+                break;
+            case Leaf:
+                coordinates = new float[] {
+                    // BACK QUAD
+                    x + offset_x * 2, y + offset_y * 24,
+                    x + offset_x * 2, y + offset_y * 25,
+                    x + offset_x * 3, y + offset_y * 25,
+                    x + offset_x * 3, y + offset_y * 24,
+
+                    // FRONT QUAD
+                    x + offset_x * 3, y + offset_y * 25,
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 2, y + offset_y * 24,
+                    x + offset_x * 2, y + offset_y * 25,
+
+                    // LEFT QUAD
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 2, y + offset_y * 24,
+                    x + offset_x * 2, y + offset_y * 25,
+                    x + offset_x * 3, y + offset_y * 25,
+
+                    // RIGHT QUAD
+                    x + offset_x * 2, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 3, y + offset_y * 25,
+                    x + offset_x * 2, y + offset_y * 25,
+
+                    // BOTTOM QUAD
+                    x + offset_x * 2, y + offset_y * 25,
+                    x + offset_x * 3, y + offset_y * 25,
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 2, y + offset_y * 24,
+
+                    // TOP QUAD
+                    x + offset_x * 3, y + offset_y * 24,
+                    x + offset_x * 2, y + offset_y * 24,
+                    x + offset_x * 2, y + offset_y * 25,
+                    x + offset_x * 3, y + offset_y * 25,
                 };
                 break;
             default:

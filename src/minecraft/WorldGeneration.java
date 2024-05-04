@@ -2,6 +2,7 @@ package minecraft;
 
 import static minecraft.Chunk.CHUNK_SIZE;
 import minecraft.BlockTexture.BlockTextureType;
+import java.util.Random;
 
 public class WorldGeneration {
     private static final int SEA_LEVEL = 18;
@@ -74,13 +75,23 @@ public class WorldGeneration {
     
     public static void decorateTerrain(Block chunk_block[][][], int[][] heightMap)
     {
+        Random random = new Random();
         for (int x = 0; x < CHUNK_SIZE; ++x)
         {
             for (int z = 0; z < CHUNK_SIZE; ++z)
             {
-                int surface_y = heightMap[x][z];
+                int surface_y = heightMap[x][z] - 1 ;
                 
-                chunk_block[x][surface_y - 1][z].setBlockType(BlockTextureType.Grass); // surface is grass
+                chunk_block[x][surface_y][z].setBlockType(BlockTextureType.Grass); // surface is grass
+                
+                 if (chunk_block[x][surface_y][z].getBlockType() == BlockTextureType.Grass && 
+                    chunk_block[x][surface_y + 1][z].getBlockType() == BlockTextureType.Air && //Ensures surface block is grass and block above the surface is air
+                    (surface_y > 0 && chunk_block[x][surface_y - 1][z].getBlockType() != BlockTextureType.Sand)){
+                    if(random.nextDouble() < 0.005) {  // chance to place a tree
+                        Tree tree = new Tree(new Vector3f(x, surface_y + 1, z), 6, 3);
+                        tree.generate(chunk_block);
+                    }
+                }
                 
                 double d = 5 * dirtNoise.noise(0.01 * x, 0.01 * z) / 2.0 + 0.5;
                 int dirtVariation = (int) Math.round(d + 3);

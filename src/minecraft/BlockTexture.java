@@ -21,6 +21,8 @@ public final class BlockTexture {
         Dirt,
         Stone,
         Bedrock,
+        Wood,
+        Leaf,
     }
     
     private static int textureID;
