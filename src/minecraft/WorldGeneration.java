@@ -84,15 +84,6 @@ public class WorldGeneration {
                 
                 chunk_block[x][surface_y][z].setBlockType(BlockTextureType.Grass); // surface is grass
                 
-                 if (chunk_block[x][surface_y][z].getBlockType() == BlockTextureType.Grass && 
-                    chunk_block[x][surface_y + 1][z].getBlockType() == BlockTextureType.Air && //Ensures surface block is grass and block above the surface is air
-                    (surface_y > 0 && chunk_block[x][surface_y - 1][z].getBlockType() != BlockTextureType.Sand)){
-                    if(random.nextDouble() < 0.005) {  // chance to place a tree
-                        Tree tree = new Tree(new Vector3f(x, surface_y + 1, z), 6, 3);
-                        tree.generate(chunk_block);
-                    }
-                }
-                
                 double d = 5 * dirtNoise.noise(0.01 * x, 0.01 * z) / 2.0 + 0.5;
                 int dirtVariation = (int) Math.round(d + 3);
                 
@@ -119,6 +110,15 @@ public class WorldGeneration {
                 for (int i = 0; i < bedRockVariation; ++i)
                 {
                     chunk_block[x][i][z].setBlockType(BlockTextureType.Bedrock);
+                }
+                
+                if (surface_y < World.WORLD_HEIGHT - 2 && chunk_block[x][surface_y][z].getBlockType() == BlockTextureType.Grass && 
+                    chunk_block[x][surface_y + 1][z].getBlockType() == BlockTextureType.Air && //Ensures surface block is grass and block above the surface is air
+                    (surface_y > 0 && chunk_block[x][surface_y - 1][z].getBlockType() != BlockTextureType.Sand)){
+                    if(random.nextDouble() < 0.005) {  // chance to place a tree
+                        Tree tree = new Tree(new Vector3f(x, surface_y + 1, z), 6, 3);
+                        tree.generate(chunk_block);
+                    }
                 }
             }
         }
