@@ -112,10 +112,11 @@ public class Chunk {
             {
                 for (int y = 0; y < World.WORLD_HEIGHT; ++y)
                 {
-                    Block currentBlock = chunk_block[x][y][z];
+                    //Block currentBlock = chunk_block[x][y][z];
                     if (chunk_block[x][y][z].isAir()) continue;
                     
-                    Block[] neighbors = {
+                    /**
+                     * Block[] neighbors = {
                         getAdjacentBlock(x, y, z, BlockFaces.Back),
                         getAdjacentBlock(x, y, z, BlockFaces.Front),
                         getAdjacentBlock(x, y, z, BlockFaces.Left),
@@ -138,9 +139,19 @@ public class Chunk {
                                     faces[i], targetMesh, targetTextureCoords, targetColor, currentBlock, x, y, z);
                         
                     }
+                     */
                         
-
-                    if (chunk_block[x][y][z].isTransparent())
+                    // if block is leaf just add all faces for simplicity
+                    if ( chunk_block[x][y][z].getBlockType() == BlockTextureType.Leaf )
+                    {
+                        addCubeFace(BlockAlphaType.Transparent, BlockFaces.Back, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        addCubeFace(BlockAlphaType.Transparent, BlockFaces.Front, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        addCubeFace(BlockAlphaType.Transparent, BlockFaces.Left, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        addCubeFace(BlockAlphaType.Transparent, BlockFaces.Right, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        addCubeFace(BlockAlphaType.Transparent, BlockFaces.Bottom, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);
+                        addCubeFace(BlockAlphaType.Transparent, BlockFaces.Top, transparentCubeMesh, transparentCubeTextureCoordinates, transparentCubeColor, chunk_block[x][y][z], x, y, z);  
+                    }
+                    else if (chunk_block[x][y][z].isTransparent())
                     {
                         // check back neighbor
                         if ( z > 0 && chunk_block[x][y][z - 1].isAir() )
@@ -209,9 +220,7 @@ public class Chunk {
                         {
                             addCubeFace(BlockAlphaType.Opaque, BlockFaces.Top, cubeMesh, cubeTextureCoordinates, cubeColor, chunk_block[x][y][z], x, y, z);
                         }
-                    }
-                    
-                    
+                    } 
                 }
             }
         } 
@@ -295,7 +304,6 @@ public class Chunk {
         else                                total_transparent_faces += 1;
         
 
-        total_opaque_faces += 1;
         int x = start_x * 2 * CHUNK_SIZE + cubeX * BLOCK_LENGTH;
         int y = start_y * 2 * World.WORLD_HEIGHT + cubeY * BLOCK_LENGTH;
         int z = start_z * 2 * CHUNK_SIZE + cubeZ * BLOCK_LENGTH;
